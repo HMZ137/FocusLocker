@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FocusLocker · 把时间锁给专注</title>
+  <meta name="description" content="FocusLocker 是一款 Windows 桌面专注锁屏工具：设定时段自动锁定电脑，白名单网站内自由学习，AI 助手、待办、番茄钟与文件库一应俱全。">
+  <link rel="icon" href="assets/favicon.ico" type="image/x-icon">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- ============ 滚动进度条 ============ -->
+  <div class="scroll-progress" id="scrollProgress" aria-hidden="true"></div>
+
+  <!-- ============ 背景氛围 ============ -->
+  <div class="bg-fx" aria-hidden="true">
+    <div class="glow glow-a"></div>
+    <div class="glow glow-b"></div>
+    <div class="glow glow-c"></div>
+    <div class="grid-overlay"></div>
+    <div class="stars" id="stars"></div>
+  </div>
+
+  <!-- ============ 顶部导航 ============ -->
+  <header class="site-header" id="siteHeader">
+    <div class="container nav-inner">
+      <a class="brand" href="#top" aria-label="FocusLocker 首页">
+        <span class="brand-mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+          </svg>
+        </span>
+        <span class="brand-name">Focus<span>Locker</span></span>
+      </a>
+      <nav class="main-nav" aria-label="主导航">
+        <a href="#features">核心特性</a>
+        <a href="#howto">上手指南</a>
+        <a href="#showcase">界面预览</a>
+        <a href="#faq">常见问题</a>
+      </nav>
+      <a class="btn btn-primary btn-sm nav-cta" href="#download">下载安装</a>
+      <button class="nav-toggle" id="navToggle" aria-label="打开菜单" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+    <div class="mobile-menu" id="mobileMenu">
+      <a href="#features">核心特性</a>
+      <a href="#howto">上手指南</a>
+      <a href="#showcase">界面预览</a>
+      <a href="#faq">常见问题</a>
+      <a href="#download" class="btn btn-primary btn-sm">下载安装</a>
+    </div>
+  </header>
+
+  <!-- ============ Hero ============ -->
+  <section class="hero" id="top">
+    <div class="container hero-inner">
+      <div class="hero-copy reveal">
+        <h1>把时间，<br><span class="grad-text">锁给专注。</span></h1>
+        <p class="hero-sub">
+          FocusLocker 是一款 Windows 桌面专注锁屏工具。
+          设定学习时段，到点自动锁定电脑；白名单网站内继续查资料、听音乐、用 AI，
+          把分心挡在屏幕之外。
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary btn-lg" href="#download">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><polyline points="7 11 12 16 17 11"/><line x1="12" y1="16" x2="12" y2="4"/>
+            </svg>
+            下载 Windows 版
+          </a>
+          <a class="btn btn-ghost btn-lg" href="#features">了解核心特性</a>
+        </div>
+        <ul class="hero-meta">
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><line x1="12" y1="7" x2="12" y2="12"/><line x1="12" y1="12" x2="15" y2="15"/></svg>
+            定时锁定 · 随时待命
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+            验证码退出 · 硬性上限
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 4H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3v4l4-4h9a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="7" y1="13" x2="13" y2="13"/></svg>
+            AI 助手 · 陪伴学习
+          </li>
+        </ul>
+      </div>
+
+      <!-- 产品界面演示（代码还原应用遮罩，站点标签可点击切换） -->
+      <div class="hero-mock reveal">
+        <div class="mock-window">
+          <div class="mock-topbar">
+            <div class="mock-title">
+              <span class="mock-lock">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+              </span>
+              专注中 · Focus Locker
+            </div>
+            <span class="mock-pin">固定</span>
+          </div>
+
+          <div class="mock-body">
+            <div class="mock-sitebar" id="mockSitebar">
+              <button class="site-chip active" data-site="DeepSeek"><span class="site-dot"></span>DeepSeek</button>
+              <button class="site-chip" data-site="Kimi"><span class="site-dot"></span>Kimi</button>
+              <button class="site-chip" data-site="网易云音乐"><span class="site-dot"></span>网易云音乐</button>
+              <button class="site-chip" data-site="物理电子课本"><span class="site-dot"></span>物理电子课本</button>
+            </div>
+
+            <div class="mock-countdown">
+              <div class="mock-clock" id="mockClock">02:47:16</div>
+              <div class="mock-clock-label">距离解锁还有</div>
+              <div class="mock-progress"><span id="mockProgress"></span></div>
+            </div>
+
+            <div class="mock-actions">
+              <button class="mbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2"/><line x1="12" y1="7" x2="12" y2="12"/><line x1="12" y1="12" x2="15" y2="15"/></svg>切换网站</button>
+              <button class="mbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>延长锁屏</button>
+              <button class="mbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 4H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3v4l4-4h9a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="7" y1="13" x2="13" y2="13"/></svg>专注助手</button>
+              <button class="mbtn mbtn-danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 4v6l-4 9a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l-4-9V4"/><path d="M9 3h6"/></svg>紧急退出</button>
+            </div>
+          </div>
+
+          <div class="mock-todo">
+            <div class="mock-todo-head">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="12" height="16" rx="2"/><path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="15" y2="14"/><line x1="9" y1="18" x2="13" y2="18"/></svg>
+              今日待办
+            </div>
+            <ul class="mock-todo-list">
+              <li class="done"><span class="tick">✓</span>背完 50 个单词</li>
+              <li class="done"><span class="tick">✓</span>数学卷子最后两题</li>
+              <li><span class="tick"></span>整理英语错题本</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="hero-foot">
+      <a href="#philosophy" class="scroll-hint">
+        向下滚动，了解全部特性
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </a>
+    </div>
+  </section>
+
+  <!-- ============ 产品理念 ============ -->
+  <section class="philosophy" id="philosophy">
+    <div class="container">
+      <div class="phil-lede reveal">
+        <h2>自律，不该依赖意志力。</h2>
+        <p>
+          我们最常见的失败，不是「不想努力」，而是「每一次分心都太容易」。
+          打开电脑想做正事，却被一个网页、一段视频、一场闲聊带走。
+          FocusLocker 想改变的是这一点——<strong>把「分心」变成一件需要绕过三道闸门的事</strong>，
+          而把「专注」变成默认选项。
+        </p>
+      </div>
+      <div class="phil-grid">
+        <article class="phil-card reveal">
+          <span class="phil-num">01</span>
+          <h3>环境设计，胜过临场意志</h3>
+          <p>与其在「再玩五分钟」和「我该学习了」之间反复拉扯，不如把选择提前做好。锁屏时段一经设定，到点自动执行，不需要你此刻的坚持。</p>
+        </article>
+        <article class="phil-card reveal">
+          <span class="phil-num">02</span>
+          <h3>锁屏不是惩罚，是保护</h3>
+          <p>锁住的是娱乐入口，而不是学习工具。白名单网站、AI 助手、待办与文件库都在锁屏内正常可用——该用的资源一样不少。</p>
+        </article>
+        <article class="phil-card reveal">
+          <span class="phil-num">03</span>
+          <h3>纪律要有「出口」，才算真诚</h3>
+          <p>真遇到急事，验证码紧急退出、冷却时间、20 分钟硬上限——急事能办，偷懒没门。自律不该让人绝望，而该让人安心。</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 核心特性 ============ -->
+  <section class="features" id="features">
+    <div class="container">
+      <div class="section-head reveal">
+        <h2>为专注而生的每一处设计</h2>
+        <p>从「到点自动锁屏」到「锁屏中的学习体验」，FocusLocker 把自律做成了一套完整、可用的系统。</p>
+      </div>
+
+      <div class="feature-grid">
+        <article class="feature-card f-lock reveal">
+          <div class="f-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+          </div>
+          <h3>定时锁屏，到点即锁</h3>
+          <p>自由配置多个锁定时段，到达时间全屏覆盖、无法绕开。开机自动静默待命，到点准时执行，不依赖你记得打开它。</p>
+          <ul class="f-tags">
+            <li>多时段</li>
+            <li>开机自启</li>
+            <li>无人值守</li>
+          </ul>
+        </article>
+
+        <article class="feature-card f-site reveal">
+          <div class="f-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18"/><path d="M12 3a16 16 0 0 1 0 18"/><path d="M12 3a16 16 0 0 0 0 18"/><path d="M3 12a9 9 0 0 1 18 0"/></svg>
+          </div>
+          <h3>白名单网站，锁中学习</h3>
+          <p>DeepSeek、Kimi、网易云音乐、电子课本……锁定期间白名单网站照常可用，访问其他网站则被拦在遮罩之后。</p>
+          <ul class="f-tags">
+            <li>别名秒切</li>
+            <li>网址白名单</li>
+            <li>缩放记忆</li>
+          </ul>
+        </article>
+
+        <article class="feature-card f-pin reveal">
+          <div class="f-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 11V7a4 4 0 0 1 8 0v4"/><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M12 15v3"/></svg>
+          </div>
+          <h3>网站锁定，拒绝分心</h3>
+          <p>一键锁住当前网站，锁定期间无法切换；配合「最短锁定时长」，给自己留出强制沉淀的时间，而不是一句「再玩五分钟」。</p>
+          <ul class="f-tags">
+            <li>禁止切换</li>
+            <li>最短时长</li>
+            <li>快捷键一键锁定</li>
+          </ul>
+        </article>
+
+        <article class="feature-card f-ai reveal">
+          <div class="f-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 4H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3v4l4-4h9a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="7" y1="13" x2="13" y2="13"/></svg>
+          </div>
+          <h3>AI 专注助手</h3>
+          <p>接入 DeepSeek 的专属学习助手：答疑讲题、制定计划、管理待办，还能直接对锁屏系统下达指令——切换风格、播放环境音、控制锁屏。</p>
+          <ul class="f-tags">
+            <li>DeepSeek 驱动</li>
+            <li>控屏指令</li>
+            <li>文件上下文</li>
+          </ul>
+        </article>
+
+        <article class="feature-card f-emerg reveal">
+          <div class="f-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 4v6l-4 9a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l-4-9V4"/><path d="M9 3h6"/><path d="M12 10v6"/></svg>
+          </div>
+          <h3>验证码紧急退出</h3>
+          <p>确有急事时可紧急退出：输入随机验证码、等待冷却倒计时，最长不超过 20 分钟。锁屏未满最短时长则无法退出——急事能办，偷懒没门。</p>
+          <ul class="f-tags">
+            <li>随机验证码</li>
+            <li>冷却倒计时</li>
+            <li>20 分钟上限</li>
+          </ul>
+        </article>
+
+        <article class="feature-card f-prod reveal">
+          <div class="f-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="12" height="16" rx="2"/><path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="15" y2="14"/><line x1="9" y1="18" x2="13" y2="18"/></svg>
+          </div>
+          <h3>待办 · 番茄钟 · 环境音</h3>
+          <p>把「今天要做什么」写进待办，番茄钟记录每一次专注，篝火、雨声、海浪三种环境音让学习更有沉浸感。专注统计见证你的坚持。</p>
+          <ul class="f-tags">
+            <li>今日待办</li>
+            <li>番茄专注</li>
+            <li>环境白噪音</li>
+          </ul>
+        </article>
+
+        <article class="feature-card f-files reveal">
+          <div class="f-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6z"/></svg>
+          </div>
+          <h3>文件库与 AI 阅读</h3>
+          <p>PDF、Word、Excel、图片、视频一键上传，AI 直接解析文件内容回答你的问题——讲义、错题、资料放进文件库，随时提问。</p>
+          <ul class="f-tags">
+            <li>多格式解析</li>
+            <li>本地目录浏览</li>
+            <li>AI 上下文</li>
+          </ul>
+        </article>
+
+        <article class="feature-card f-guard reveal">
+          <div class="f-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-3.5 8-10V5l-8-3-8 3v7c0 6.5 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+          </div>
+          <h3>守护进程，防绕过</h3>
+          <p>内置看门狗守护：进程被结束会自动拉回，崩溃可自恢复。锁屏不是「弹窗」，而是一道认真设计过的纪律。</p>
+          <ul class="f-tags">
+            <li>崩溃自恢复</li>
+            <li>防强制结束</li>
+            <li>单实例保护</li>
+          </ul>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 上手指南 ============ -->
+  <section class="howto" id="howto">
+    <div class="container">
+      <div class="section-head reveal">
+        <h2>四步，进入专注模式</h2>
+        <p>从安装到第一次被「锁住」，整个过程不需要任何配置门槛。</p>
+      </div>
+      <div class="steps">
+        <article class="step reveal">
+          <span class="step-badge"><i>1</i></span>
+          <h3>安装</h3>
+          <p>下载安装包，以管理员权限完成安装，可自定义安装目录。</p>
+        </article>
+        <article class="step reveal">
+          <span class="step-badge"><i>2</i></span>
+          <h3>设定时段与白名单</h3>
+          <p>配置锁定时段（如每天 18:00–21:00），添加学习需要的白名单网站。</p>
+        </article>
+        <article class="step reveal">
+          <span class="step-badge"><i>3</i></span>
+          <h3>到点，自动锁定</h3>
+          <p>无需任何操作，到点全屏锁定；开机后静默待命，准时执行。</p>
+        </article>
+        <article class="step reveal">
+          <span class="step-badge"><i>4</i></span>
+          <h3>锁屏内专注学习</h3>
+          <p>在白名单网站内查资料、让 AI 讲题、写待办、听环境音，把时间真正留给自己。</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 界面预览（可交互 Tab） ============ -->
+  <section class="showcase" id="showcase">
+    <div class="container">
+      <div class="section-head reveal">
+        <h2>锁屏里的学习体验</h2>
+        <p>锁定不是「惩罚」，而是一间为你准备好的自习室——查资料、听音乐、问 AI、记待办，都在一张屏幕里完成。</p>
+      </div>
+
+      <div class="tabbar reveal" role="tablist" aria-label="界面演示">
+        <button class="tab active" role="tab" aria-selected="true" data-panel="panel-ai">AI 对话</button>
+        <button class="tab" role="tab" aria-selected="false" data-panel="panel-todo">今日待办</button>
+        <button class="tab" role="tab" aria-selected="false" data-panel="panel-files">文件库</button>
+      </div>
+
+      <div class="showcase-panel active" id="panel-ai" role="tabpanel">
+        <div class="showcase-row">
+          <div class="shot shot-chat">
+            <div class="shot-chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><em>专注助手 · AI 对话</em></div>
+            <div class="chat-scene">
+              <div class="msg ai">这道题先设未知数 x，把已知条件列成方程……</div>
+              <div class="msg user">帮我讲解「相遇问题」的解法</div>
+              <div class="msg ai">好的！相遇问题核心公式：路程 = 速度和 × 时间。我们一步步来：</div>
+              <div class="msg ai typing"><span></span><span></span><span></span></div>
+            </div>
+          </div>
+          <div class="shot-caption">
+            <h3>遇到难题，直接问</h3>
+            <p>内置 AI 助手解答学习问题，也可以解析文件库里的讲义与错题，把不懂的地方当场讲明白。</p>
+            <p class="shot-note">支持控屏指令：切换界面风格、播放环境音、增删待办。</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="showcase-panel" id="panel-todo" role="tabpanel">
+        <div class="showcase-row row-reverse">
+          <div class="shot shot-todo">
+            <div class="shot-chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><em>今日待办</em></div>
+            <div class="todo-scene">
+              <div class="todo-item done"><span class="tick">✓</span><p>背诵 50 个单词</p><b>完成</b></div>
+              <div class="todo-item"><span class="tick"></span><p>物理必修二 · 第 3 章习题</p><b>进行中</b></div>
+              <div class="todo-item"><span class="tick"></span><p>整理英语错题本</p><b>待办</b></div>
+              <div class="todo-item"><span class="tick"></span><p>预习明天的新课</p><b>待办</b></div>
+            </div>
+          </div>
+          <div class="shot-caption">
+            <h3>把计划写下来，坚持看得见</h3>
+            <p>今日待办双击即可编辑，完成打勾；可以手动添加，也可以让 AI 根据你的目标生成。</p>
+            <p class="shot-note">待办可一键导出，专注统计记录每一次番茄钟。</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="showcase-panel" id="panel-files" role="tabpanel">
+        <div class="showcase-row">
+          <div class="shot shot-files">
+            <div class="shot-chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><em>文件库</em></div>
+            <div class="files-scene">
+              <div class="file-row"><span class="file-ic">PDF</span><p>MA2000w 用户手册.pdf</p><b>AI 已解析</b></div>
+              <div class="file-row"><span class="file-ic">DOC</span><p>暑假作业 百练题 12.docx</p><b>AI 已解析</b></div>
+              <div class="file-row"><span class="file-ic">XLS</span><p>错题统计表.xlsx</p><b>AI 已解析</b></div>
+              <div class="file-row file-attached"><span class="file-ic">DOC</span><p>学生版 百练题 15.docx</p><b>已附加</b></div>
+              <div class="files-chat-msg">已将「学生版 百练题 15.docx」加入对话上下文，可以开始提问。</div>
+            </div>
+          </div>
+          <div class="shot-caption">
+            <h3>资料放进文件库，随时提问</h3>
+            <p>PDF、Word、Excel、图片、视频统一收纳，AI 直接解析内容。选择文件附加到对话，它就变成了 AI 的知识来源。</p>
+            <p class="shot-note">支持浏览本地目录，文件无需复制到文件库即可附加。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 适用场景 ============ -->
+  <section class="scenarios" id="scenarios">
+    <div class="container">
+      <div class="section-head reveal">
+        <h2>谁需要 FocusLocker</h2>
+      </div>
+      <div class="scenario-grid">
+        <article class="scenario reveal">
+          <span class="s-num">01</span>
+          <h3>自习备考</h3>
+          <p>每晚固定时段自动锁屏，白名单里只有学习需要的网站。查完资料想刷短视频？会被挡在遮罩之外。</p>
+        </article>
+        <article class="scenario reveal">
+          <span class="s-num">02</span>
+          <h3>家长管控</h3>
+          <p>配置学习时段与最短锁定时长，孩子只能使用白名单网站。遇到难题可以用 AI 助手，而不是伸手要手机。</p>
+        </article>
+        <article class="scenario reveal">
+          <span class="s-num">03</span>
+          <h3>告别拖延</h3>
+          <p>把「打开电脑先玩十分钟」变成不可能。验证码、冷却、20 分钟上限三道闸门，帮你守住每一个计划。</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 技术细节 ============ -->
+  <section class="engineering" id="engineering">
+    <div class="container">
+      <div class="section-head reveal">
+        <h2>把「认真」写进底层</h2>
+        <p>深度决定了「锁得住」。以下每一项，都是为「防绕过、不丢数据、不打扰」而做的设计。</p>
+      </div>
+      <div class="tech-list">
+        <div class="tech-row reveal">
+          <span class="tech-ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          </span>
+          <div class="tech-main">
+            <h3>单实例 + 独立持久分区</h3>
+            <p>同一时刻只允许一个实例运行，并为浏览器视图使用独立持久分区，避免多实例并发写入导致登录态（cookie 数据库）冲突丢失。</p>
+          </div>
+          <span class="tech-tag">会话安全</span>
+        </div>
+        <div class="tech-row reveal">
+          <span class="tech-ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+          </span>
+          <div class="tech-main">
+            <h3>会话即时落盘</h3>
+            <p>DeepSeek 等网站的登录会话 cookie 在变更后数秒内即刷写磁盘，异常退出也不会丢失已登录状态。</p>
+          </div>
+          <span class="tech-tag">数据可靠</span>
+        </div>
+        <div class="tech-row reveal">
+          <span class="tech-ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-3.5 8-10V5l-8-3-8 3v7c0 6.5 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+          </span>
+          <div class="tech-main">
+            <h3>看门狗守护</h3>
+            <p>主进程被强制结束后，看门狗在数秒内自动拉起；异常退出也会留下恢复路径，锁屏不会被「任务管理器」一关了之。</p>
+          </div>
+          <span class="tech-tag">防绕过</span>
+        </div>
+        <div class="tech-row reveal">
+          <span class="tech-ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+          </span>
+          <div class="tech-main">
+            <h3>硬性上限兜底</h3>
+            <p>核心逻辑内置上限：紧急退出最长 20 分钟、延长锁屏最长 24 小时、计时器最长 24 小时——任何入口都绕不过这层约束。</p>
+          </div>
+          <span class="tech-tag">纪律兜底</span>
+        </div>
+        <div class="tech-row reveal">
+          <span class="tech-ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>
+          </span>
+          <div class="tech-main">
+            <h3>数据本地优先</h3>
+            <p>配置、待办、专注统计全部保存在本机，不上传、不留痕；AI 能力通过你自己的 DeepSeek API Key 按需调用。</p>
+          </div>
+          <span class="tech-tag">隐私友好</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 快捷键 ============ -->
+  <section class="shortcuts" id="shortcuts">
+    <div class="container">
+      <div class="section-head reveal">
+        <h2>全局快捷键，锁定行云流水</h2>
+        <p>所有高频操作都支持全局快捷键，覆盖在任意软件之上也能响应。</p>
+      </div>
+      <div class="keys-table reveal">
+        <div class="k-row"><span class="k-keys"><kbd>Ctrl</kbd><i>+</i><kbd>Shift</kbd><i>+</i><kbd>Alt</kbd><i>+</i><kbd>Space</kbd></span><span class="k-desc">切换白名单网站</span></div>
+        <div class="k-row"><span class="k-keys"><kbd>Ctrl</kbd><i>+</i><kbd>Shift</kbd><i>+</i><kbd>Alt</kbd><i>+</i><kbd>T</kbd></span><span class="k-desc">固定当前网站</span></div>
+        <div class="k-row"><span class="k-keys"><kbd>Ctrl</kbd><i>+</i><kbd>Shift</kbd><i>+</i><kbd>Alt</kbd><i>+</i><kbd>E</kbd></span><span class="k-desc">延长本次锁屏</span></div>
+        <div class="k-row"><span class="k-keys"><kbd>Ctrl</kbd><i>+</i><kbd>Shift</kbd><i>+</i><kbd>Alt</kbd><i>+</i><kbd>A</kbd></span><span class="k-desc">呼出 AI 专注助手</span></div>
+        <div class="k-row"><span class="k-keys"><kbd>Ctrl</kbd><i>+</i><kbd>Shift</kbd><i>+</i><kbd>Alt</kbd><i>+</i><kbd>L</kbd></span><span class="k-desc">锁定当前网站</span></div>
+        <div class="k-row"><span class="k-keys"><kbd>Ctrl</kbd><i>+</i><kbd>Shift</kbd><i>+</i><kbd>Alt</kbd><i>+</i><kbd>F12</kbd></span><span class="k-desc">验证码紧急退出</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 常见问题 ============ -->
+  <section class="faq" id="faq">
+    <div class="container">
+      <div class="section-head reveal">
+        <h2>常见问题</h2>
+        <p>关于锁屏、退出、数据与 AI，你可能想问的都在这里。</p>
+      </div>
+      <div class="faq-list reveal">
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">
+            <span>锁屏期间，我还能用 DeepSeek、Kimi 这些网站吗？</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-a"><p>可以。白名单内的网站（如 DeepSeek、Kimi、网易云音乐、电子课本）在锁定期间照常可用，访问白名单以外的网站才会被拦下。白名单网站通过 config.js 配置，支持别名快速切换与显示缩放。</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">
+            <span>锁屏后遇到急事，怎么退出？</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-a"><p>通过全局快捷键（Ctrl+Shift+Alt+F12）或界面按钮发起紧急退出：需要输入随机验证码并等待冷却倒计时，单次最长 20 分钟。锁屏未满「最短锁定时间」时无法发起，确保紧急退出只服务于真正的急事。</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">
+            <span>直接结束进程能绕过锁屏吗？</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-a"><p>不容易。主进程被结束后，看门狗守护任务会在数秒内自动把它拉回来；计划任务方式启动的守护进程也独立于主进程存活。配合单实例保护，绕过的路径都被封死。</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">
+            <span>AI 助手需要额外配置吗？</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-a"><p>需要。FocusLocker 的 AI 助手通过 DeepSeek API 提供服务，你需要在 config.js 中填入自己的 API Key。配置好之后，答疑、待办管理、文件解析、控屏指令都可以直接用。</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">
+            <span>我的数据安全吗？会传到云端吗？</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-a"><p>数据本地优先。配置、待办、专注统计全部保存在本机文件中；上传到文件库的资料也留在本机，仅在必要时作为上下文发送给你自己的 AI 服务。登录会话 cookie 会即时落盘，避免异常退出丢失登录态。</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">
+            <span>电脑关机或重启后，锁屏还会生效吗？</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-a"><p>会。开启开机自启后，FocusLocker 会延迟数秒静默待命，一旦进入设定的锁定时段立即执行锁定，无需手动打开软件。</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 更新动态 ============ -->
+  <section class="changelog" id="changelog">
+    <div class="container">
+      <div class="section-head reveal">
+        <h2>更新动态</h2>
+        <p>每一次更新，都在让「锁得住」更可靠。</p>
+      </div>
+      <div class="timeline reveal">
+        <div class="tl-item">
+          <span class="tl-dot"></span>
+          <div class="tl-body">
+            <span class="tl-ver">v1.0.0</span>
+            <h3>当前稳定版</h3>
+            <p>定时锁屏、白名单网站、网站锁定、AI 专注助手、待办与番茄钟、环境音、文件库与 AI 阅读、守护进程全部就绪，支持开机自启与全局快捷键。</p>
+          </div>
+        </div>
+        <div class="tl-item">
+          <span class="tl-dot"></span>
+          <div class="tl-body">
+            <span class="tl-ver">近期修复</span>
+            <h3>紧急退出恢复更可靠</h3>
+            <p>修复紧急退出倒计时结束后遮罩未重建的问题，锁定时段内退出后立即恢复锁屏，不留「可乘之机」。</p>
+          </div>
+        </div>
+        <div class="tl-item">
+          <span class="tl-dot"></span>
+          <div class="tl-body">
+            <span class="tl-ver">界面精简</span>
+            <h3>更简洁的功能布局</h3>
+            <p>移除「定时置顶指定进程」等冗余功能，网站列表改为在配置文件中统一管理；即时模式默认关闭，需显式开启。</p>
+          </div>
+        </div>
+        <div class="tl-item">
+          <span class="tl-dot"></span>
+          <div class="tl-body">
+            <span class="tl-ver">工程基建</span>
+            <h3>部署与守护持续加固</h3>
+            <p>一键部署脚本在升级时自动备份并恢复用户配置与文件库；看门狗与任务计划持续优化，避免进程被轻易结束。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 下载 ============ -->
+  <section class="download" id="download">
+    <div class="container">
+      <div class="download-panel reveal">
+        <div class="dl-left">
+          <h2>现在就开始专注</h2>
+          <p class="dl-sub">下载 FocusLocker，设置你的学习时段，把分心挡在屏幕之外。</p>
+          <ul class="dl-reqs">
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-3.5 8-10V5l-8-3-8 3v7c0 6.5 8 10 8 10z"/></svg>
+              Windows 10 / 11（64 位）
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 22h8M12 18v4"/></svg>
+              安装包约 90 MB，需管理员权限安装
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="12" r="3"/></svg>
+              本地运行，AI 服务通过 DeepSeek API 接入
+            </li>
+          </ul>
+        </div>
+        <div class="dl-right">
+          <div class="dl-card">
+            <div class="dl-version">
+              <span class="dl-badge">Windows</span>
+              <h4>FocusLocker 1.0.0</h4>
+              <p>最新稳定版</p>
+            </div>
+            <a class="btn btn-primary btn-lg btn-block" href="downloads/FocusLocker Setup 1.0.0.exe">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><polyline points="7 11 12 16 17 11"/><line x1="12" y1="16" x2="12" y2="4"/></svg>
+              下载安装包
+            </a>
+            <p class="dl-note">安装完成后，首次运行请先配置锁定时段与白名单网站。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 页脚 ============ -->
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <a class="brand" href="#top">
+        <span class="brand-mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        </span>
+        <span class="brand-name">Focus<span>Locker</span></span>
+      </a>
+      <nav class="footer-nav" aria-label="页脚导航">
+        <a href="#philosophy">理念</a>
+        <a href="#features">核心特性</a>
+        <a href="#howto">上手指南</a>
+        <a href="#faq">常见问题</a>
+        <a href="#download">下载</a>
+      </nav>
+      <p class="footer-copy">© 2026 FocusLocker · 把时间锁给专注</p>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+﻿# ===== Node / Electron =====
+node_modules/
+dist*/
+dist-fix/
+out/
+release/
+.cache/
+.parcel-cache/
+
+# ===== 运行时状态 / 用户个人数据 =====
+focus-settings.json
+focus-stats.json
+site-stats.json
+cookies.sqlite
+cookies.sqlite-shm
+cookies.sqlite-wal
+cookies-local.json
+focus-log.txt
+*.log
+uploaded-files.json
+
+files/*
+!files/README.md
+
+todos/*
+!todos/README.md
+
+# ===== 构建 / 部署 临时产物 =====
+_deploy-*.ps1
+_deploy-result.txt
+builder-debug.yml
+builder-effective-config.yaml
+*.blockmap
+
+# ===== 外部工具二进制（随安装包分发，源码仓不直接纳入） =====
+SoundVolumeView.exe
+nircmd.exe
+
+# ===== IDE / 系统 / 调试脚本 =====
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+cdp_verify3.mjs
+
+# ===== 独立子项目（如需请单独建仓） =====
+maimbot/
+ui-v2/
+
+# ===== 根目录旧入口（应用以 renderer/index.html 为准） =====
+/index.html

@@ -1,0 +1,109 @@
+{
+  "name": "focus-locker",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "build": "electron-builder",
+    "test": "chcp 65001 && electron . --test",
+    "start": "chcp 65001 && electron ."
+  },
+  "build": {
+    "appId": "com.focus.locker",
+    "productName": "FocusLocker",
+    "compression": "maximum",
+    "directories": {
+      "output": "dist-v16"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "main/**/*",
+      "renderer/**/*",
+      "assets/**/*",
+      "node_modules/**/*",
+      "!node_modules/.cache/**",
+      "!**/*.map"
+    ],
+    "electronLanguages": [
+      "zh-CN",
+      "en-US"
+    ],
+    "win": {
+      "target": "nsis",
+      "requestedExecutionLevel": "requireAdministrator"
+    },
+    "extraFiles": [
+      {
+        "from": "config.js",
+        "to": "config.js"
+      },
+      {
+        "from": "config.json",
+        "to": "config.json"
+      },
+      {
+        "from": "extensions",
+        "to": "extensions"
+      },
+      {
+        "from": "userscripts",
+        "to": "userscripts"
+      },
+      {
+        "from": "todos",
+        "to": "todos"
+      },
+      {
+        "from": "SoundVolumeView.exe",
+        "to": "SoundVolumeView.exe"
+      },
+      {
+        "from": "nircmd.exe",
+        "to": "nircmd.exe"
+      },
+      {
+        "from": "Sounds",
+        "to": "Sounds"
+      },
+      {
+        "from": "build/set-runas.ps1",
+        "to": "set-runas.ps1"
+      },
+      {
+        "from": "guard.ps1",
+        "to": "guard.ps1"
+      },
+      {
+        "from": "guard-task.vbs",
+        "to": "guard-task.vbs"
+      },
+      {
+        "from": "guard-proc.vbs",
+        "to": "guard-proc.vbs"
+      }
+    ],
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": false,
+      "createStartMenuShortcut": false,
+      "menuCategory": "FocusLocker",
+      "include": "build/installer.nsh"
+    }
+  },
+  "devDependencies": {
+    "electron": "^34.0.0",
+    "electron-builder": "^24.0.0"
+  },
+  "dependencies": {
+    "csv-parser": "^3.2.1",
+    "highlight.js": "^11.11.1",
+    "katex": "^0.18.1",
+    "mammoth": "^1.12.0",
+    "marked": "^18.0.7",
+    "mica-electron": "^1.5.17",
+    "pdf-parse": "^2.4.5",
+    "xlsx": "^0.18.5"
+  }
+}
