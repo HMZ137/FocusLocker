@@ -1,6 +1,6 @@
 {
   "name": "focus-locker",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Focus Locker - 专注力锁定工具",
   "author": "FocusLocker",
   "main": "main.js",
@@ -14,7 +14,7 @@
     "productName": "FocusLocker",
     "compression": "maximum",
     "directories": {
-      "output": "dist-build6"
+      "output": "dist-build7"
     },
     "files": [
       "main.js",

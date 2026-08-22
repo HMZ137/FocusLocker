@@ -80,6 +80,12 @@ contextBridge.exposeInMainWorld('utils', {
   onChatToolResult: (callback) => {
     ipcRenderer.on('chat-tool-result', (event, data) => callback(data));
   },
+  onChatWebSearch: (callback) => {
+    ipcRenderer.on('chat-web-search', (event, data) => callback(data));
+  },
+  onChatWebSearchDone: (callback) => {
+    ipcRenderer.on('chat-web-search-done', () => callback());
+  },
   onToggleAgent: (callback) => {
     ipcRenderer.on('toggle-agent', () => callback());
   },
@@ -94,8 +100,21 @@ contextBridge.exposeInMainWorld('utils', {
   readImageDataUrl: (filePath) => ipcRenderer.invoke('read-image-data-url', filePath),
   saveFile: (content, defaultName) => ipcRenderer.invoke('save-file', content, defaultName),
   importUserScript: () => ipcRenderer.invoke('import-user-script-dialog'),
+  importUserStyle: () => ipcRenderer.invoke('import-user-style-dialog'),
+  installExtension: () => ipcRenderer.invoke('install-extension-dialog'),
+  installExtensionDir: () => ipcRenderer.invoke('install-extension-dir-dialog'),
+  reloadExtensions: () => ipcRenderer.invoke('reload-extensions'),
+  toggleExtension: (sourcePath, enabled) => ipcRenderer.invoke('toggle-extension', sourcePath, enabled),
+  toggleUserScript: (scriptId, enabled) => ipcRenderer.invoke('toggle-user-script', scriptId, enabled),
   getExtensionStatus: () => ipcRenderer.invoke('get-extension-status'),
   openExtensionUi: (extensionId, preferredPage) => ipcRenderer.invoke('open-extension-ui', extensionId, preferredPage),
+  listUserStylesMeta: () => ipcRenderer.invoke('list-user-styles-meta'),
+  getUserStyleDetail: (styleId) => ipcRenderer.invoke('get-user-style-detail', styleId),
+  saveUserStyleOverrides: (styleId, patch) => ipcRenderer.invoke('save-user-style-overrides', styleId, patch),
+  toggleUserStyle: (styleId, enabled) => ipcRenderer.invoke('toggle-user-style', styleId, enabled),
+  deleteUserStyle: (styleId) => ipcRenderer.invoke('delete-user-style', styleId),
+  reloadUserStyles: () => ipcRenderer.invoke('reload-user-styles'),
+  previewUserStyleCss: (styleId, overrideValues) => ipcRenderer.invoke('preview-user-style-css', styleId, overrideValues),
 
   // 文件查看
   getFileViewConfig: () => ipcRenderer.invoke('get-file-view-config'),
@@ -126,6 +145,9 @@ contextBridge.exposeInMainWorld('utils', {
   },
   onDailyTaskBlocking: (callback) => {
     ipcRenderer.on('daily-task-blocking', (event, data) => callback(data));
+  },
+  onDailyTaskUnblocked: (callback) => {
+    ipcRenderer.on('daily-task-unblocked', (event, data) => callback(data));
   },
 
   // 倒计时

@@ -104,7 +104,9 @@ function normalizeSites(sites) {
         aliases: Array.isArray(s.aliases) ? s.aliases : [],
         zoom: typeof s.zoom === 'number' ? s.zoom : 1,
         injectCSS: s.injectCSS || null,
-        pinned: !!s.pinned
+        pinned: !!s.pinned,
+        // 常驻：锁屏结束后保留 BrowserView，下次锁屏免重新加载；非常驻离开遮罩即销毁、切换时再懒加载
+        persistent: s.persistent !== false
       };
     });
 }
@@ -155,20 +157,48 @@ function readJsConfig(filePath, context) {
   return result && typeof result === 'object' ? result : {};
 }
 
+// 合并 config.js（基线）与 config.json（UI 保存）两个来源的网站列表：
+// 按 id（无 id 时按 name）去重，config.json 的条目优先级更高；config.js 独有的网站必须保留，
+// 避免用户手动在 config.js 新增/调整网站后，被一次 UI 保存的整体覆盖而不再读取。
+function mergeSiteLists(jsSites, jsonSites) {
+  const out = [];
+  const seen = new Set(); // 已合并的 key：id 或 name 任一命中即视为同一网站
+  const keyOf = (s) => {
+    if (!s) return [];
+    const keys = [];
+    if (s.id) keys.push('id:' + String(s.id));
+    if (s.name && String(s.name).trim()) keys.push('name:' + String(s.name).trim());
+    return keys;
+  };
+  const jsonList = Array.isArray(jsonSites) ? jsonSites : [];
+  const jsList = Array.isArray(jsSites) ? jsSites : [];
+  for (const s of [...jsonList, ...jsList]) {
+    const keys = keyOf(s);
+    // 完全无法识别的条目（无 id 无 name）也保留，避免直接丢弃用户数据
+    if (keys.length === 0) { out.push(s); continue; }
+    if (keys.some(k => seen.has(k))) continue;
+    keys.forEach(k => seen.add(k));
+    out.push(s);
+  }
+  return out;
+}
+
 function loadRawConfig(app) {
   const baseDir = getBaseDir(app);
   const dataDir = getDataDir(app);
   migrateUserData(baseDir, dataDir, app); // 一次性迁移旧版安装目录内的可变数据到 userData
   const jsPath = path.join(baseDir, 'config.js');       // 安装目录内的打包默认配置（只读基线）
   const jsonPath = path.join(dataDir, 'config.json');  // userData 内的用户配置（运行时保存，跨重装保留）
+  const jsCfg = readJsConfig(jsPath, { app, baseDir }); // 打包默认（底层）
+  const jsonCfg = readJson(jsonPath);                   // 用户覆盖（顶层）
+  const config = { ...jsCfg, ...jsonCfg };
+  // sites 特殊处理：数组级合并而非整体覆盖，保证 UI 保存后仍读取 config.js 中的网站
+  config.sites = mergeSiteLists(jsCfg.sites, jsonCfg.sites);
   return {
     baseDir,
     dataDir,
     configPath: fs.existsSync(jsonPath) ? jsonPath : (fs.existsSync(jsPath) ? jsPath : jsonPath),
-    config: {
-      ...readJsConfig(jsPath, { app, baseDir }),  // 打包默认（底层）
-      ...readJson(jsonPath)                        // 用户覆盖（顶层）
-    }
+    config
   };
 }
 
@@ -237,5 +267,6 @@ module.exports = {
   normalizeDailyTasks,
   dailyTaskIdFromName,
   readJsConfig,
-  readJson
+  readJson,
+  mergeSiteLists
 };

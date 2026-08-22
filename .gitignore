@@ -8,6 +8,7 @@ release/
 .parcel-cache/
 
 # ===== 运行时状态 / 用户个人数据 =====
+config.json
 focus-settings.json
 focus-stats.json
 site-stats.json
@@ -31,6 +32,13 @@ _deploy-result.txt
 builder-debug.yml
 builder-effective-config.yaml
 *.blockmap
+_gitver-staging/
+_gitver-staging-manifest.json
+
+# ===== 个人 / 本机专属文件 =====
+.workbuddy/
+Sounds1/
+flatnmusic.user.css
 
 # ===== 外部工具二进制（随安装包分发，源码仓不直接纳入） =====
 SoundVolumeView.exe

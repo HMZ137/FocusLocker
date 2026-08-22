@@ -24,6 +24,17 @@
     starsWrap.appendChild(frag);
   }
 
+  /* ---------- 下载版本动态化（跟随最新版安装包） ---------- */
+  var dlVersion = document.getElementById('dlVersion');
+  if (dlVersion) {
+    fetch('downloads/version')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d && d.version) dlVersion.textContent = d.version;
+      })
+      .catch(function () { /* 保留静态版本号 */ });
+  }
+
   /* ---------- 滚动进度条 ---------- */
   var progressBar = document.getElementById('scrollProgress');
   function updateProgress() {

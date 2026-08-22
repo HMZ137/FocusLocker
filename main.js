@@ -2,9 +2,10 @@ const { app, BrowserWindow, BrowserView, ipcMain, globalShortcut, screen, dialog
 const path = require('path');
 const fs = require('fs');
 const { exec, execSync, spawn } = require('child_process');
+const { StringDecoder } = require('string_decoder');
 const https = require('https');
 const { getBaseDir, getDataDir, loadAppConfig, saveConfigPatch, loadRawConfig, normalizeDailyTasks } = require('./main/config');
-const { importUserScript, injectUserScripts, loadCrxExtensions, loadUserScripts } = require('./main/extensions');
+const { importUserScript, injectUserScripts, loadCrxExtensions, loadUserScripts, loadExtensionSettings, saveExtensionSettings, installExtensionFile, installExtensionDir, importUserStyle, loadUserStyles, injectUserStyles, loadUserstyleSettings, listUserStylesMeta, saveUserStyleVarOverrides, toggleUserStyle, deleteUserStyle, compileUserStyle, promoteImportant, equivalentKeys } = require('./main/extensions');
 const { MicaBrowserWindow, IS_WINDOWS_11 } = require('mica-electron');
 const BROWSER_VIEW_PARTITION = 'persist:focus-locker-browser-views';
 
@@ -40,10 +41,15 @@ const svvPath = path.join(baseDir, 'SoundVolumeView.exe');
 app.commandLine.appendSwitch('disable-blink-features', 'AutomationControlled');
 app.commandLine.appendSwitch('ignore-certificate-errors');
 app.commandLine.appendSwitch('disable-features', 'OutOfBlinkCors');
+// 限制磁盘缓存 400MB：所有 persist 分区共用磁盘上限；防止网站刷几天之后 Cache 目录飙到几 GB
+app.commandLine.appendSwitch('disk-cache-size', String(400 * 1024 * 1024));
+// 限制渲染进程数量，避免 N 个网站 = N 个 Chromium 渲染进程常驻
+app.commandLine.appendSwitch('renderer-process-limit', '4');
 
 const args = process.argv.slice(1);
 const isTestMode = args.includes('--test');
 const isQuickStart = args.includes('--quick-start') || args.includes('--quick');
+let quickModeActive = isQuickStart; // 快速模式标识：本次会话（含 second-instance 触发的快速锁屏）是否处于快速模式
 const isAutoStart = args.includes('--autostart');   // 由自启动注册表项注入：用于延迟/静默待命
 const AUTO_START_DELAY_MS = 5000;                   // 开机自启动延迟：避开开机资源争抢
 
@@ -71,6 +77,7 @@ try {
         const wantQuick = argv.includes('--quick-start') || argv.includes('--quick');
         if (wantQuick) {
           logToFile('INFO', 'second-instance 收到快速锁屏请求');
+          quickModeActive = true;
           extendLockTime(60);
           createOverlay();
           setTimeout(() => {
@@ -137,6 +144,7 @@ const SHORTCUT_ACTIONS = { switchSite: 'switchSite', toggleAlwaysOnTop: 'toggleA
 const FOCUS_SETTINGS_FILE = path.join(dataDir, 'focus-settings.json');
 let focusSettings = { minLockMinutes: 0, verifyCodeEnabled: true, focusLen: 25, breakLen: 5, siteLockMinMinutes: 0, timerSyncPomodoro: true, instantMode: false, shortcuts: { ...DEFAULT_SHORTCUTS } };
 let pendingMinSettings = null; // 已保存但下次出现遮罩才应用的两个最短时长设置
+let pendingTaskRatio = null;   // 已保存但下次出现遮罩才应用的「每日任务完成率阈值」（自定义任务完成比例）
 let lockStartedAt = null;   // 本次锁屏开始时间（用于最短锁定时长校验）
 let pomodoro = {
   mode: 'idle',             // 'idle' | 'focus' | 'break'
@@ -182,9 +190,11 @@ let siteUsageTickTimer = null;
 
 let timeRanges = [];
 let userScripts = [];
+let userStyles = []; // 用户样式（.user.css），随网站 BrowserView 加载注入
 let extensionLoadResults = [];
 let browserViewSession = null;
 let extensionsReady = Promise.resolve();
+const openExtensionWindows = new Set(); // 扩展 UI 窗口，遮罩关闭时统一释放，避免僵尸窗口占内存
 
 // ========== Agent 工具定义 ==========
 const tools = [
@@ -526,10 +536,137 @@ const tools = [
       description: "获取系统综合状态：当前时间、锁屏状态、置顶、界面风格、番茄钟、倒计时、环境音、今日专注时长。",
       parameters: { type: "object", properties: {}, required: [] }
     }
+  },
+  // ===== 管理能力（网站 / 每日任务 / 扩展脚本） =====
+  {
+    type: "function",
+    function: {
+      name: "list_sites",
+      description: "获取完整网站配置列表：每个网站的 id、名称、网址、缩放、别名、常驻（persistent）、固定（pinned）状态，以及当前显示的网站。",
+      parameters: { type: "object", properties: {}, required: [] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "add_site",
+      description: "新增网站到网站配置。常驻（persistent=true）的网站离开遮罩后仍保持加载；固定（pinned=true）的网站锁屏期间置顶且禁止切换。",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "网站名称（必填，须与现有网站不重名）" },
+          url: { type: "string", description: "网址，需以 http:// 或 https:// 开头（必填）" },
+          zoom: { type: "number", description: "缩放倍数，0.1~5，默认 1" },
+          persistent: { type: "boolean", description: "是否常驻（离开遮罩不销毁），默认 true" },
+          pinned: { type: "boolean", description: "是否固定（锁屏置顶），默认 false" },
+          aliases: { type: "array", items: { type: "string" }, description: "别名列表（可选），用于语音/文字切换网站" }
+        },
+        required: ["name", "url"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_site",
+      description: "修改现有网站的配置（网址/缩放/常驻/固定/别名/名称）。通过 name 定位网站；只更新传入的字段。修改网址后已加载的视图会立即刷新。",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "要修改的现有网站名称（必填）" },
+          new_name: { type: "string", description: "改名后的新名称（可选）" },
+          url: { type: "string", description: "新网址，需以 http:// 或 https:// 开头（可选）" },
+          zoom: { type: "number", description: "新缩放倍数 0.1~5（可选）" },
+          persistent: { type: "boolean", description: "是否常驻（可选）" },
+          pinned: { type: "boolean", description: "是否固定（可选）" },
+          aliases: { type: "array", items: { type: "string" }, description: "新别名列表（可选）" }
+        },
+        required: ["name"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "remove_site",
+      description: "删除一个网站。若该网站为当前显示网站会先切换到其他网站；对应已加载视图同步销毁。网站锁定期间禁止删除。",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "要删除的网站名称（必填）" }
+        },
+        required: ["name"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_daily_tasks",
+      description: "获取每日任务列表（任务名与预计分钟数）。",
+      parameters: { type: "object", properties: {}, required: [] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "add_daily_task",
+      description: "新增每日任务。",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "任务名称（必填，须与现有任务不重名）" },
+          minutes: { type: "integer", description: "预计分钟数，0~1440，默认 0" }
+        },
+        required: ["name"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "remove_daily_task",
+      description: "删除一个每日任务。",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "要删除的任务名称（必填）" }
+        },
+        required: ["name"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_extension_status",
+      description: "查询当前已加载的浏览器扩展（CRX）与用户脚本状态：扩展名称/来源/是否带配置页、脚本名称/匹配规则。",
+      parameters: { type: "object", properties: {}, required: [] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "web_search",
+      description: "联网搜索互联网获取最新信息。当用户问题涉及实时/时效性内容（新闻、事件、最新动态、需要查证的事实等）或现有知识可能过时时调用。返回前 5 条搜索结果（标题/网址/摘要），请基于结果摘要回答并附上来源链接。",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "搜索关键词（建议简洁具体，可用中文）" }
+        },
+        required: ["query"]
+      }
+    }
   }
 ];
 
 // ========== 配置加载 ==========
+// 从扩展设置中读取被禁用的用户脚本文件名集合
+function getDisabledUserScriptNames() {
+  const settings = loadExtensionSettings(dataDir);
+  return new Set(Object.keys(settings.disabledScripts || {}));
+}
+
 function loadConfig() {
   try {
     const config = loadAppConfig(app);
@@ -541,13 +678,15 @@ function loadConfig() {
     siteList = config.sites;
     timeRanges = config.timeRanges;
     dailyTasks = Array.isArray(config.dailyTasks) ? config.dailyTasks : [];
-    userScripts = loadUserScripts(config.baseDir, config.userScripts);
+    userScripts = loadUserScripts(config.baseDir, config.userScripts, getDisabledUserScriptNames());
+    userStyles = loadUserStyles(config.dataDir);
     logToFile('INFO', '配置加载完成', {
       configPath: config.configPath,
       autoLaunchEnabled,
       instantModeEnabled,
       sites: siteList.map(s => s.name),
-      userScripts: userScripts.map(s => s.name)
+      userScripts: userScripts.map(s => s.name),
+      userStyles: userStyles.map(s => s.name)
     });
   } catch (e) {
     logToFile('ERROR', '配置加载失败', e.message);
@@ -1370,8 +1509,10 @@ function callDeepSeekAPI(messages, stream = true) {
       let buffer = '';
       let fullContent = '';
       let toolCalls = [];
+      // StringDecoder 保持跨 data 事件的多字节 UTF-8 序列完整，避免中文/表情被切断解码成 �（U+FFFD）
+      const decoder = new StringDecoder('utf8');
       res.on('data', (chunk) => {
-        buffer += chunk.toString();
+        buffer += decoder.write(chunk);
         const lines = buffer.split('\n');
         buffer = lines.pop();
         for (const line of lines) {
@@ -1844,9 +1985,247 @@ async function executeToolCall(toolName, args) {
         todayFocusMinutes: Math.floor(getTodayFocusSeconds() / 60)
       };
     }
+    // ===== 管理能力（网站 / 每日任务 / 扩展脚本） =====
+    case 'list_sites': {
+      return {
+        sites: siteList.map(s => ({
+          id: s.id, name: s.name, url: s.url, zoom: s.zoom,
+          aliases: Array.isArray(s.aliases) ? s.aliases : [],
+          persistent: s.persistent !== false, pinned: !!s.pinned
+        })),
+        currentSite: (siteList.find(s => s.id === visibleSiteId) || {}).name || '',
+        siteLockActive,
+        message: `共 ${siteList.length} 个网站`
+      };
+    }
+    case 'add_site': {
+      const name = String(args.name || '').trim();
+      const url = String(args.url || '').trim();
+      if (!name) return { error: '网站名称不能为空' };
+      if (!/^https?:\/\//i.test(url)) return { error: `网址无效：${url}（需以 http:// 或 https:// 开头）` };
+      if (siteList.some(s => s.name.toLowerCase() === name.toLowerCase())) {
+        return { error: `已存在同名网站「${name}」` };
+      }
+      let zoom = Number(args.zoom);
+      if (isNaN(zoom) || zoom <= 0) zoom = 1;
+      if (zoom > 5) return { error: '缩放不能超过 5' };
+      const persistent = args.persistent !== false;
+      const pinned = !!args.pinned;
+      const aliases = Array.isArray(args.aliases) ? args.aliases.map(a => String(a).trim()).filter(Boolean) : [];
+      const site = { id: uniqueSiteId(name, siteList.map(s => s.id)), name, url, zoom, aliases, pinned, persistent };
+      const newSites = siteList.map(serializeSite);
+      newSites.push(serializeSite(site));
+      persistRuntimeConfig({ sites: newSites });
+      // 常驻网站立即创建视图并挂载，方便本次锁屏直接切换使用
+      if (persistent && overlayWin && !overlayWin.isDestroyed()) ensureSiteView(site.id);
+      return { success: true, message: `已新增网站「${name}」（${persistent ? '常驻' : '非常驻'}）`, site: serializeSite(site) };
+    }
+    case 'update_site': {
+      const name = String(args.name || '').trim();
+      if (!name) return { error: '请指定要修改的网站名称' };
+      const target = siteList.find(s => s.name.toLowerCase() === name.toLowerCase());
+      if (!target) return { error: `未找到网站「${name}」。可用网站：${siteList.map(s => s.name).join('、')}` };
+      const updated = { ...target };
+      if (args.new_name !== undefined && String(args.new_name).trim() && String(args.new_name).trim() !== updated.name) {
+        const newName = String(args.new_name).trim();
+        if (siteList.some(s => s.id !== updated.id && s.name.toLowerCase() === newName.toLowerCase())) {
+          return { error: `已存在同名网站「${newName}」` };
+        }
+        updated.name = newName;
+      }
+      if (args.url !== undefined) {
+        const newUrl = String(args.url).trim();
+        if (!/^https?:\/\//i.test(newUrl)) return { error: `网址无效：${newUrl}（需以 http:// 或 https:// 开头）` };
+        updated.url = newUrl;
+      }
+      if (args.zoom !== undefined) {
+        const newZoom = Number(args.zoom);
+        if (isNaN(newZoom) || newZoom <= 0 || newZoom > 5) return { error: `缩放无效：${args.zoom}（应为 0.1~5）` };
+        updated.zoom = newZoom;
+      }
+      if (args.persistent !== undefined) updated.persistent = !!args.persistent;
+      if (args.pinned !== undefined) updated.pinned = !!args.pinned;
+      if (args.aliases !== undefined) updated.aliases = Array.isArray(args.aliases) ? args.aliases.map(a => String(a).trim()).filter(Boolean) : [];
+      const newSites = siteList.map(s => serializeSite(s.id === target.id ? updated : s));
+      persistRuntimeConfig({ sites: newSites });
+      // 网址变化：已加载视图立即刷新（若视图存活）
+      const view = viewsMap.get(target.id);
+      if (view && !view.webContents.isDestroyed() && updated.url !== target.url) {
+        view.webContents.loadURL(updated.url);
+      }
+      return { success: true, message: `网站「${target.name}」已更新`, site: serializeSite(updated) };
+    }
+    case 'remove_site': {
+      const name = String(args.name || '').trim();
+      if (!name) return { error: '请指定要删除的网站名称' };
+      const target = siteList.find(s => s.name.toLowerCase() === name.toLowerCase());
+      if (!target) return { error: `未找到网站「${name}」。可用网站：${siteList.map(s => s.name).join('、')}` };
+      if (siteLockActive && target.id === visibleSiteId) {
+        return { error: `网站「${target.name}」已锁定，无法删除。请先解除网站锁定。` };
+      }
+      // 若删除的是当前显示网站，先切换到第一个剩余网站
+      if (target.id === visibleSiteId) {
+        const remain = siteList.filter(s => s.id !== target.id);
+        if (remain.length > 0) {
+          visibleSiteId = remain[0].id;
+          ensureSiteView(visibleSiteId); // 保证新前台有视图
+          if (overlayWin && !overlayWin.isDestroyed()) {
+            overlayWin.webContents.send('site-changed', remain[0].name);
+            updateBrowserViewBounds();
+          }
+        } else {
+          visibleSiteId = null;
+        }
+      }
+      // 销毁对应视图：使用统一 destroySiteView 完成 removeBrowserView + removeAllListeners + webContents.destroy + Map 删除
+      destroySiteView(target.id);
+      const newSites = siteList.filter(s => s.id !== target.id).map(serializeSite);
+      persistRuntimeConfig({ sites: newSites });
+      return { success: true, message: `网站「${target.name}」已删除，剩余 ${newSites.length} 个网站` };
+    }
+    case 'list_daily_tasks': {
+      return {
+        tasks: dailyTasks.map(t => ({ name: t.name, minutes: Number(t.minutes) || 0 })),
+        message: dailyTasks.length === 0 ? '当前未配置每日任务' : `共 ${dailyTasks.length} 个每日任务`
+      };
+    }
+    case 'add_daily_task': {
+      const taskName = String(args.name || '').trim();
+      if (!taskName) return { error: '任务名称不能为空' };
+      if (dailyTasks.some(t => t.name.toLowerCase() === taskName.toLowerCase())) {
+        return { error: `已存在同名任务「${taskName}」` };
+      }
+      let minutes = Number(args.minutes);
+      if (isNaN(minutes) || minutes < 0) minutes = 0;
+      if (minutes > 1440) return { error: '分钟数不能超过 1440' };
+      const normalized = normalizeDailyTasks([...dailyTasks, { name: taskName, minutes }]).map(t => ({ id: t.id, name: t.name, minutes: t.minutes }));
+      persistRuntimeConfig({ dailyTasks: normalized });
+      return { success: true, message: `已新增每日任务「${taskName}」（${minutes} 分钟）` };
+    }
+    case 'remove_daily_task': {
+      const taskName = String(args.name || '').trim();
+      if (!taskName) return { error: '请指定要删除的任务名称' };
+      const targetTask = dailyTasks.find(t => t.name.toLowerCase() === taskName.toLowerCase());
+      if (!targetTask) return { error: `未找到任务「${taskName}」。可用任务：${dailyTasks.map(t => t.name).join('、')}` };
+      const normalized = normalizeDailyTasks(dailyTasks.filter(t => t.id !== targetTask.id)).map(t => ({ id: t.id, name: t.name, minutes: t.minutes }));
+      persistRuntimeConfig({ dailyTasks: normalized });
+      return { success: true, message: `每日任务「${targetTask.name}」已删除，剩余 ${normalized.length} 个` };
+    }
+    case 'get_extension_status': {
+      const crx = extensionLoadResults.map(item => item.success ? { id: item.id, name: item.name, file: item.file, ui: item.ui, success: true } : item);
+      const scripts = userScripts.map(s => ({ name: s.name, matches: s.matches, path: s.path }));
+      const styles = userStyles.map(s => ({ name: s.name, matches: s.matches, path: s.path }));
+      return {
+        extensions: crx,
+        userScripts: scripts,
+        userStyles: styles,
+        message: `已加载 ${crx.length} 个扩展 · ${scripts.length} 个用户脚本 · ${styles.length} 个用户样式`
+      };
+    }
+    case 'web_search': {
+      const query = String(args.query || '').trim();
+      if (!query) return { error: '搜索关键词不能为空' };
+      const result = await performWebSearch(query);
+      if (result.error) return { error: result.error };
+      return {
+        query,
+        results: result.results,
+        message: `已搜索「${query}」，共 ${result.results.length} 条结果`
+      };
+    }
     default:
       throw new Error(`未知工具: ${toolName}`);
   }
+}
+
+// ===== agent 管理工具辅助 =====
+// 网站配置序列化（写回 config.json 用，保留 id 以稳定去重，persistent 显式落盘）
+function serializeSite(s) {
+  return {
+    id: s.id,
+    name: s.name,
+    url: s.url,
+    zoom: typeof s.zoom === 'number' && s.zoom > 0 ? s.zoom : 1,
+    aliases: Array.isArray(s.aliases) ? s.aliases : [],
+    persistent: s.persistent !== false,
+    pinned: !!s.pinned
+  };
+}
+// 从名称生成唯一网站 id（与 UI 保存的 pushSite 规则一致）
+function uniqueSiteId(name, existingIds) {
+  let id = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'site';
+  let base = id, n = 2;
+  while (existingIds.includes(id)) id = `${base}_${n++}`;
+  return id;
+}
+// 将运行时配置变更合并写回 dataDir/config.json 并重载（网站/每日任务管理工具用）
+function persistRuntimeConfig(patch) {
+  const raw = loadRawConfig(app);
+  const merged = { ...(raw.config || {}) };
+  if (patch.sites) merged.sites = patch.sites;
+  if (patch.dailyTasks !== undefined) merged.dailyTasks = patch.dailyTasks;
+  delete merged.pinWindows;
+  const configJsonPath = path.join(raw.dataDir, 'config.json');
+  fs.writeFileSync(configJsonPath, JSON.stringify(merged, null, 2), 'utf-8');
+  logToFile('INFO', 'agent 配置变更已保存', { configJsonPath, siteCount: (merged.sites || []).length, dailyTaskCount: (merged.dailyTasks || []).length });
+  loadConfig();
+  return configJsonPath;
+}
+
+// ===== 联网搜索（web_search 工具） =====
+// 无 key 方案：抓取 Bing 中国（cn.bing.com，国内可直接访问）结果页并解析前 5 条（标题/网址/摘要）
+function stripHtmlTags(s) {
+  return String(s)
+    .replace(/<[^>]+>/g, '')
+    .replace(/&ensp;/g, ' ').replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&middot;/g, '·').replace(/&ndash;/g, '–')
+    .replace(/&#(\d+);/g, (m, n) => { try { return String.fromCharCode(parseInt(n, 10)); } catch (e) { return m; } })
+    .trim();
+}
+function parseBingResults(html) {
+  const out = [];
+  const blocks = html.match(/<li class="b_algo"[\s\S]*?<\/li>/g) || [];
+  for (const block of blocks.slice(0, 5)) {
+    const a = block.match(/<h2[^>]*>\s*<a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>\s*<\/h2>/);
+    if (!a) continue;
+    const url = /^https?:/i.test(a[1]) ? a[1] : 'https:' + a[1];
+    const title = stripHtmlTags(a[2]);
+    const p = block.match(/<p[^>]*>([\s\S]*?)<\/p>/);
+    out.push({ title, url, snippet: p ? stripHtmlTags(p[1]) : '' });
+  }
+  return out;
+}
+function performWebSearch(query) {
+  return new Promise((resolve) => {
+    const url = 'https://cn.bing.com/search?q=' + encodeURIComponent(query) + '&setlang=zh-CN';
+    let settled = false;
+    const done = (payload) => { if (!settled) { settled = true; resolve(payload); } };
+    const req = https.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml',
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8'
+      }
+    }, (res) => {
+      if (res.statusCode !== 200) {
+        res.resume();
+        done({ error: `搜索服务返回状态码 ${res.statusCode}` });
+        return;
+      }
+      let html = '';
+      res.setEncoding('utf8');
+      res.on('data', (d) => { html += d; });
+      res.on('end', () => {
+        const results = parseBingResults(html);
+        if (!results.length) { done({ error: '未获取到搜索结果' }); return; }
+        done({ results });
+      });
+      res.on('error', (e) => done({ error: e.message }));
+    });
+    req.on('error', (e) => done({ error: e.message }));
+    req.setTimeout(12000, () => { try { req.destroy(); } catch (e) { /* 忽略 */ } done({ error: '搜索超时' }); });
+  });
 }
 
 async function loadTodosFromFile(dateStr) {
@@ -1876,7 +2255,8 @@ function loadFocusSettings() {
         instantMode: s.instantMode === true,
         shortcuts: { ...DEFAULT_SHORTCUTS, ...(s.shortcuts && typeof s.shortcuts === 'object' ? s.shortcuts : {}) },
         dailyTaskDate: s.dailyTaskDate || '',
-        dailyTaskCompleted: (s.dailyTaskCompleted && typeof s.dailyTaskCompleted === 'object') ? s.dailyTaskCompleted : {}
+        dailyTaskCompleted: (s.dailyTaskCompleted && typeof s.dailyTaskCompleted === 'object') ? s.dailyTaskCompleted : {},
+        dailyTaskRatio: Math.max(0.1, Math.min(1, Number(s.dailyTaskRatio) || 0.6))
       };
     }
   } catch (e) { logToFile('WARN', '读取锁定设置失败', e.message); }
@@ -2209,55 +2589,125 @@ function restoreMusicView() {
 }
 
 // ========== BrowserView 管理 ==========
+// 单个网站的 BrowserView 创建（含加载、注入、事件绑定）
+function createSiteView(site) {
+  const view = new BrowserView({
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      webSecurity: false,
+      partition: BROWSER_VIEW_PARTITION
+    }
+  });
+  if (overlayWin && !overlayWin.isDestroyed()) overlayWin.addBrowserView(view);
+  viewsMap.set(site.id, view);
+  const sess = view.webContents.session;
+  sess.setPermissionRequestHandler((webContents, permission, callback) => callback(true));
+  view.webContents.setUserAgent(
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+  );
+  extensionsReady.finally(() => {
+    if (!view.webContents.isDestroyed()) view.webContents.loadURL(site.url);
+  });
+  view.webContents.on('did-finish-load', () => {
+    if (view.webContents.isDestroyed()) return;
+    view.webContents.setZoomFactor(site.zoom);
+    if (site.injectCSS) {
+      // 站点级自定义 CSS 同样以「用户来源」注入并强制 !important，
+      // 稳定盖过原站样式（含原站的 !important），不再抢位置/重叠
+      view.webContents.insertCSS(promoteImportant(site.injectCSS), { cssOrigin: 'user' });
+    }
+    injectUserScripts(view.webContents, userScripts, view.webContents.getURL(), logToFile);
+    injectUserStyles(view.webContents, userStyles, view.webContents.getURL(), logToFile);
+  });
+  view.webContents.on('will-navigate', (event, url) => {
+    event.preventDefault();
+    if (!view.webContents.isDestroyed()) view.webContents.loadURL(url);
+  });
+  view.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+    logToFile('ERROR', `[${site.name}] 加载失败`, errorDescription, validatedURL);
+  });
+  view.webContents.on('before-input-event', (event, input) => {
+    handleShortcut(event, input);
+  });
+  // 防御：webContents 被 Chromium 提前销毁时同步清理 Map，避免遗留空引用导致下次懒加载跳过
+  view.webContents.on('destroyed', () => {
+    if (viewsMap.get(site.id) === view) viewsMap.delete(site.id);
+  });
+  return view;
+}
+
+// 彻底销毁单个站点 BrowserView：从各窗口卸载、移除事件、清 permission、销毁 webContents、从 Map 移除
+// 注意：不会 touch session 级存储（cookie/cache），登录态仍保留
+function destroySiteView(siteId) {
+  const view = viewsMap.get(siteId);
+  if (!view) return false;
+  try {
+    // 1) 从所有可能挂载的 BrowserWindow 上移除
+    if (musicPopupWin && !musicPopupWin.isDestroyed()) {
+      try { musicPopupWin.removeBrowserView(view); } catch (_) {}
+    }
+    if (overlayWin && !overlayWin.isDestroyed()) {
+      try { overlayWin.removeBrowserView(view); } catch (_) {}
+    }
+    // 2) 清理 session 级 request handler（对单个 view 粒度不严格）
+    try {
+      const sess = view.webContents && view.webContents.session;
+      if (sess && typeof sess.setPermissionRequestHandler === 'function') {
+        sess.setPermissionRequestHandler(null);
+      }
+    } catch (_) {}
+    // 3) 移除所有事件监听器，打断对 view/webContents 的引用，避免 GC 被闭包 hold 住
+    try { view.webContents && view.webContents.removeAllListeners && view.webContents.removeAllListeners(); } catch (_) {}
+    try { view.removeAllListeners && view.removeAllListeners(); } catch (_) {}
+    // 4) 销毁 webContents（释放渲染进程、DOM、JS heap；若已销毁内部 no-op）
+    if (view.webContents && !view.webContents.isDestroyed()) {
+      try { view.webContents.destroy(); } catch (_) {}
+    }
+  } catch (e) {
+    logToFile('WARN', '销毁网站视图异常', siteId, e.message);
+  } finally {
+    viewsMap.delete(siteId);
+  }
+  return true;
+}
+
+// 确保指定网站的视图存在：常驻视图遮罩重建后仍存活，直接重新挂载；非常驻视图被销毁后在此懒加载重建
+function ensureSiteView(siteId) {
+  if (viewsMap.has(siteId)) {
+    const v = viewsMap.get(siteId);
+    if (overlayWin && !overlayWin.isDestroyed()) {
+      try { overlayWin.addBrowserView(v); } catch (e) { logToFile('WARN', '重新挂载网站视图失败', siteId, e.message); }
+    }
+    return v;
+  }
+  const site = siteList.find(s => s.id === siteId);
+  if (!site || !overlayWin || overlayWin.isDestroyed()) return null;
+  return createSiteView(site);
+}
+
 function createBrowserViews() {
   try {
+    // 遮罩创建 / 重建时，先卸载 viewsMap 中已经存在但 siteList 里已经不存在的"野"视图（例如用户在设置里删掉了某条）
+    for (const [id, view] of [...viewsMap]) {
+      const stillPresent = siteList.some(s => s.id === id);
+      if (!stillPresent) destroySiteView(id);
+    }
     siteList.forEach((site) => {
-      const view = new BrowserView({
-        webPreferences: {
-          nodeIntegration: false,
-          contextIsolation: true,
-          webSecurity: false,
-          partition: BROWSER_VIEW_PARTITION
+      // 常驻网站：提前创建并加载，即使不在遮罩显示也保持存活；上次遮罩保留的视图直接重新挂载
+      if (!site.persistent) return;
+      if (viewsMap.has(site.id)) {
+        if (overlayWin && !overlayWin.isDestroyed()) {
+          try { overlayWin.addBrowserView(viewsMap.get(site.id)); } catch (e) { logToFile('WARN', '重新挂载常驻网站视图失败', site.id, e.message); }
         }
-      });
-      overlayWin.addBrowserView(view);
-      viewsMap.set(site.id, view);
-      const sess = view.webContents.session;
-      sess.setPermissionRequestHandler((webContents, permission, callback) => callback(true));
-      view.webContents.setUserAgent(
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
-      );
-      extensionsReady.finally(() => {
-        if (!view.webContents.isDestroyed()) view.webContents.loadURL(site.url);
-      });
-      view.webContents.on('did-finish-load', () => {
-        view.webContents.setZoomFactor(site.zoom);
-        if (site.id === 'music' || site.url.includes('music.163.com')) {
-          view.webContents.insertCSS(`
-            .g-topbar, .m-nav, .g-single, .g-ft, .g-bd .g-mn .m-tab, .g-bd .g-mn .m-slide {
-              display: none !important;
-            }
-            .g-bd { padding-top: 0 !important; }
-            .g-mn { width: 100% !important; margin-left: 0 !important; }
-          `);
-        }
-        if (site.injectCSS) {
-          view.webContents.insertCSS(site.injectCSS);
-        }
-        injectUserScripts(view.webContents, userScripts, view.webContents.getURL(), logToFile);
-      });
-      view.webContents.on('will-navigate', (event, url) => {
-        event.preventDefault();
-        view.webContents.loadURL(url);
-      });
-      view.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
-        logToFile('ERROR', `[${site.name}] 加载失败`, errorDescription, validatedURL);
-      });
-      view.webContents.on('before-input-event', (event, input) => {
-        handleShortcut(event, input);
-      });
+        return;
+      }
+      createSiteView(site);
     });
-    visibleSiteId = siteList[0].id;
+    // 当前可见网站必须有视图（若为非常驻也立即创建，保证打开即显示）
+    const firstId = siteList[0] ? siteList[0].id : null;
+    visibleSiteId = firstId;
+    if (firstId) ensureSiteView(firstId);
     updateBrowserViewBounds();
   } catch (err) {
     logToFile('ERROR', '创建 BrowserView 失败', err);
@@ -2316,10 +2766,12 @@ function updateBrowserViewBounds() {
   if (!overlayWin || overlayWin.isDestroyed() || viewsMap.size === 0 || isMusicPopped) return;
   const bounds = overlayWin.getBounds();
   const hiddenBounds = { x: bounds.width + 1000, y: 0, width: bounds.width, height: bounds.height };
-  // 经典布局：网站常驻右侧 40%
+  // 顶部每日任务进度条高度（6px 条 + 2px 间隙）：网站视图须从其下方开始，避免盖住进度条
+  const TOP_BAR_PX = 8;
+  // 经典布局（左右分栏）：网站常驻右侧 40%，顶部让位给全宽进度条
   if (layoutMode === 'legacy') {
     const rightWidth = Math.floor(bounds.width * 0.4);
-    const visibleBounds = { x: bounds.width - rightWidth, y: 0, width: rightWidth, height: bounds.height };
+    const visibleBounds = { x: bounds.width - rightWidth, y: TOP_BAR_PX, width: rightWidth, height: bounds.height - TOP_BAR_PX };
     viewsMap.forEach((view, id) => {
       view.setBounds(id === visibleSiteId ? visibleBounds : hiddenBounds);
     });
@@ -2329,7 +2781,7 @@ function updateBrowserViewBounds() {
   let visibleBounds = hiddenBounds;
   if (siteViewActive && sitePanelBounds) {
     const maxTop = bounds.height - 40;
-    const top = Math.max(0, Math.min(sitePanelBounds.top, maxTop));
+    const top = Math.max(TOP_BAR_PX, Math.min(sitePanelBounds.top, maxTop));
     const height = Math.max(40, Math.min(sitePanelBounds.height, bounds.height - top));
     visibleBounds = { x: 0, y: top, width: bounds.width, height };
   }
@@ -2375,13 +2827,22 @@ function switchSite(targetId) {
   if (targetId === visibleSiteId) return;
   const current = siteList.find(s => s.id === visibleSiteId);
   if (current && current.pinned) return; // 已固定网站：锁定期间禁止切换
+  const prevId = visibleSiteId;
+  const prevSite = current;
   if (isMusicPopped) restoreMusicView();
-  if (!viewsMap.has(targetId)) return;
+  // 非常驻网站视图可能已被销毁，切换时懒加载重建
+  const view = ensureSiteView(targetId);
+  if (!view) return;
   visibleSiteId = targetId;
   updateBrowserViewBounds();
   if (overlayWin && !overlayWin.isDestroyed()) {
     const site = siteList.find(s => s.id === visibleSiteId);
     overlayWin.webContents.send('site-changed', site ? site.name : visibleSiteId);
+  }
+  // 关键：离开的网站如果是"非常驻"，立即销毁释放渲染进程与内存（屏外隐藏并不能省内存）
+  if (prevId && prevSite && !prevSite.persistent && prevId !== visibleSiteId) {
+    destroySiteView(prevId);
+    logToFile('INFO', '切换后已释放非常驻网站视图', { prevId, prevName: prevSite.name });
   }
 }
 function switchToNextSite() {
@@ -2474,6 +2935,11 @@ async function createOverlay() {
     focusSettings = { ...focusSettings, ...pendingMinSettings };
     pendingMinSettings = null;
   }
+  // 已保存的自定义任务完成比例：本次出现遮罩时应用（下次启动生效）
+  if (pendingTaskRatio != null) {
+    focusSettings = { ...focusSettings, dailyTaskRatio: pendingTaskRatio };
+    pendingTaskRatio = null;
+  }
   try {
     overlayWin = new MicaBrowserWindow({
       fullscreen: true,
@@ -2529,9 +2995,23 @@ async function createOverlay() {
     overlayWin.webContents.on('did-finish-load', () => {
       createBrowserViews();
       startSiteUsageTracking();
+      // 快速模式标识：渲染端就绪后再通知，避免一次性事件早于监听注册而丢失
+      if (quickModeActive) {
+        overlayWin.webContents.send('quick-start-status', true);
+      }
       const site = siteList.find(s => s.id === visibleSiteId);
       overlayWin.webContents.send('site-changed', site ? site.name : '');
       overlayWin.webContents.send('always-on-top-changed', forceAlwaysOnTop);
+      // 锁屏时段已结束但每日任务未达标：立即推送常驻提示
+      if (!isInLockTime()) {
+        const dpLoad = getDailyTaskProgress();
+        if (!dpLoad.met) {
+          overlayWin.webContents.send('daily-task-blocking', {
+            completed: dpLoad.completed, total: dpLoad.total,
+            need: Math.ceil(dpLoad.total * dpLoad.threshold)
+          });
+        }
+      }
       const extendRemaining = Math.max(0, Math.floor((extendedUntil - Date.now()) / 1000));
       sendExtendedStatus(extendRemaining);
       // 遮罩重建后：若延长锁屏仍在有效期内但计时器已停（如紧急退出后恢复），重新启动计时器
@@ -2615,17 +3095,30 @@ function cleanupOverlay() {
     logToFile('INFO', '紧急退出冷却已暂停（退出期间冻结）');
   }
 
-  viewsMap.forEach((view, id) => {
-    if (isMusicPopped && musicPopupWin && !musicPopupWin.isDestroyed()) {
-      const mv = getMusicView();
-      if (view === mv) musicPopupWin.removeBrowserView(view);
-      else if (overlayWin && !overlayWin.isDestroyed()) overlayWin.removeBrowserView(view);
-    } else if (overlayWin && !overlayWin.isDestroyed()) {
-      overlayWin.removeBrowserView(view);
-    }
-    view.webContents.destroy();
-  });
-  viewsMap.clear();
+  // 遮罩关闭：仅保留 siteList 中标记为"常驻"的视图，其余一律销毁释放渲染进程内存
+  // 之前 keepVisibleId 保留前台非常驻的逻辑会导致网站泄漏（用户打开过的非常驻永远不释放，数量多了轻松 >1G）
+  for (const [id, view] of [...viewsMap]) {
+    const site = siteList.find(s => s.id === id);
+    // siteList 已不存在的"野"视图也一并销毁
+    const keepAlive = !!(site && site.persistent);
+    // 先统一从 overlay / musicPopup 上卸载，避免窗口句柄被 BrowserView 强引用
+    try {
+      if (isMusicPopped && musicPopupWin && !musicPopupWin.isDestroyed()) {
+        const mv = getMusicView && getMusicView();
+        if (view !== mv && overlayWin && !overlayWin.isDestroyed()) overlayWin.removeBrowserView(view);
+        else if (view === mv) musicPopupWin.removeBrowserView(view);
+      } else if (overlayWin && !overlayWin.isDestroyed()) {
+        overlayWin.removeBrowserView(view);
+      }
+    } catch (_) {}
+    if (keepAlive) continue;
+    destroySiteView(id);
+  }
+  // 关闭所有扩展 UI 子窗口（它们以 overlayWin 为 parent，遮罩消失后通常不会自动关，留着吃内存）
+  for (const w of [...openExtensionWindows]) {
+    try { if (w && !w.isDestroyed()) w.close(); } catch (_) {}
+    openExtensionWindows.delete(w);
+  }
   if (musicPopupWin && !musicPopupWin.isDestroyed()) {
     musicPopupWin.close();
     musicPopupWin = null;
@@ -2941,11 +3434,12 @@ function checkTimeAndToggle() {
   }
 }
 
-// 每日任务阻塞通知节流：同一阻塞状态期间最多每 5 分钟提醒一次
+// 每日任务阻塞通知：常驻提示由 did-finish-load / toggle / set 实时推送，
+// 周期性检查（checkLockSchedule）仅需补充推送以防用户未操作时提示丢失
 let dailyTaskBlockNotifiedAt = 0;
 function notifyDailyTaskBlocking(progress) {
   const now = Date.now();
-  if (now - dailyTaskBlockNotifiedAt < 5 * 60 * 1000) return;
+  if (now - dailyTaskBlockNotifiedAt < 30 * 1000) return; // 节流降至 30 秒
   dailyTaskBlockNotifiedAt = now;
   const need = Math.ceil(progress.total * progress.threshold);
   if (overlayWin && !overlayWin.isDestroyed()) {
@@ -2967,7 +3461,7 @@ ipcMain.handle('toggle-auto-launch', async () => {
   }
   return { enabled: autoLaunchEnabled, ok };
 });
-ipcMain.handle('get-sites', async () => siteList.map(s => ({ id: s.id, name: s.name, pinned: !!s.pinned })));
+ipcMain.handle('get-sites', async () => siteList.map(s => ({ id: s.id, name: s.name, pinned: !!s.pinned, persistent: s.persistent !== false })));
 ipcMain.handle('toggle-site-lock', async () => toggleSiteLock());
 ipcMain.handle('get-site-lock', async () => getSiteLockState());
 ipcMain.handle('get-current-site', async () => {
@@ -3035,7 +3529,7 @@ if (isTestMode) {
     return await executeToolCall(toolName, args || {});
   });
 }
-ipcMain.handle('get-quick-start-mode', async () => isQuickStart);
+ipcMain.handle('get-quick-start-mode', async () => isQuickStart || quickModeActive);
 
 // 延长锁屏
 ipcMain.handle('show-extend-dialog', async () => {
@@ -3109,12 +3603,22 @@ ipcMain.handle('deepseek-chat', async (event, messages) => {
         for (const toolCall of assistantMsg.tool_calls) {
           try {
             const args = JSON.parse(toolCall.function.arguments || '{}');
+            // 联网搜索：先通知渲染端将「思考过程」切换为「正在搜索」状态
+            if (toolCall.function.name === 'web_search') {
+              if (overlayWin && !overlayWin.isDestroyed()) {
+                overlayWin.webContents.send('chat-web-search', { query: String(args.query || '') });
+              }
+            }
             const result = await executeToolCall(toolCall.function.name, args);
             if (overlayWin && !overlayWin.isDestroyed()) {
               overlayWin.webContents.send('chat-tool-result', {
                 toolName: toolCall.function.name,
                 result: result
               });
+              // 搜索完成：通知渲染端把「正在搜索」恢复为「思考过程」并在标题前加「已搜索网页」标签
+              if (toolCall.function.name === 'web_search') {
+                overlayWin.webContents.send('chat-web-search-done');
+              }
             }
             messageHistory.push({
               role: 'tool',
@@ -3447,7 +3951,7 @@ ipcMain.handle('import-user-script-dialog', async () => {
   if (result.canceled || result.filePaths.length === 0) return null;
   try {
     const imported = importUserScript(baseDir, result.filePaths[0]);
-    userScripts = loadUserScripts(baseDir, loadAppConfig(app).userScripts);
+    userScripts = loadUserScripts(baseDir, loadAppConfig(app).userScripts, getDisabledUserScriptNames());
     return { success: true, ...imported, count: userScripts.length };
   } catch (err) {
     return { success: false, error: err.message };
@@ -3481,6 +3985,12 @@ ipcMain.handle('open-extension-ui', async (event, extensionId, preferredPage) =>
       }
     });
     win.setMenuBarVisibility(false);
+    // 跟踪扩展窗口：用户手动关闭或遮罩 cleanupOverlay 时统一从 Set 中释放，避免僵尸窗口
+    openExtensionWindows.add(win);
+    win.once('closed', () => {
+      openExtensionWindows.delete(win);
+      try { win.webContents && win.webContents.removeAllListeners && win.webContents.removeAllListeners(); } catch (_) {}
+    });
     win.once('ready-to-show', () => win.show());
     await win.loadURL(url);
     if (!win.isVisible()) win.show();
@@ -3496,10 +4006,251 @@ ipcMain.handle('get-extension-status', async () => ({
     name: item.name,
     file: item.file,
     ui: item.ui,
+    sourcePath: item.sourcePath,
+    disabled: !!item.disabled,
     success: true
   } : item),
-  userScripts: userScripts.map(s => ({ name: s.name, matches: s.matches, path: s.path }))
+  userScripts: userScripts.map(s => ({
+    id: s.id,
+    name: s.name,
+    matches: s.matches,
+    path: s.path,
+    enabled: s.enabled !== false
+  })),
+  userStyles: userStyles.map(s => ({
+    id: s.id,
+    name: s.name,
+    description: s.description,
+    version: s.version,
+    author: s.author,
+    enabled: s.enabled,
+    fileName: s.fileName,
+    varsCount: (s.vars && s.vars.length) || 0,
+    matches: s.matches.map(p => typeof p === 'object' ? `regexp:${p.regexp}` : p),
+    path: s.path
+  }))
 }));
+
+// 重新加载扩展（安装 .crx / 解压目录后调用）：已加载的跳过重复加载，新增的直接 loadExtension
+async function reloadExtensions() {
+  if (!browserViewSession) return { success: false, error: '会话尚未初始化' };
+  try {
+    extensionLoadResults = await loadCrxExtensions(app, browserViewSession, baseDir, dataDir, logToFile);
+    return { success: true, extensions: extensionLoadResults };
+  } catch (err) {
+    logToFile('ERROR', '重新加载扩展失败', err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+// 像正常浏览器一样安装扩展：选择 .crx 文件
+ipcMain.handle('install-extension-dialog', async () => {
+  if (!overlayWin || overlayWin.isDestroyed()) return null;
+  const result = await dialog.showOpenDialog(overlayWin, {
+    title: '安装 CRX 扩展',
+    properties: ['openFile'],
+    filters: [
+      { name: 'Chrome 扩展 (.crx)', extensions: ['crx'] },
+      { name: '所有文件', extensions: ['*'] }
+    ]
+  });
+  if (result.canceled || result.filePaths.length === 0) return null;
+  try {
+    const installed = installExtensionFile(dataDir, result.filePaths[0]);
+    const reload = await reloadExtensions();
+    return { success: true, ...installed, reloaded: reload.success, extensions: reload.extensions };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+// 像正常浏览器一样安装扩展：选择解压扩展文件夹（含 manifest.json）
+ipcMain.handle('install-extension-dir-dialog', async () => {
+  if (!overlayWin || overlayWin.isDestroyed()) return null;
+  const result = await dialog.showOpenDialog(overlayWin, {
+    title: '安装解压扩展文件夹',
+    properties: ['openDirectory']
+  });
+  if (result.canceled || result.filePaths.length === 0) return null;
+  try {
+    const installed = installExtensionDir(dataDir, result.filePaths[0]);
+    const reload = await reloadExtensions();
+    return { success: true, ...installed, reloaded: reload.success, extensions: reload.extensions };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+// 导入用户样式（.user.css，Stylus 风格），复制到用户数据目录 userstyles/
+ipcMain.handle('import-user-style-dialog', async () => {
+  if (!overlayWin || overlayWin.isDestroyed()) return null;
+  const result = await dialog.showOpenDialog(overlayWin, {
+    title: '导入用户样式',
+    properties: ['openFile'],
+    filters: [
+      { name: '用户样式', extensions: ['css'] },
+      { name: '所有文件', extensions: ['*'] }
+    ]
+  });
+  if (result.canceled || result.filePaths.length === 0) return null;
+  try {
+    const imported = importUserStyle(dataDir, result.filePaths[0]);
+    userStyles = loadUserStyles(dataDir);
+    return { success: true, ...imported, count: userStyles.length };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('reload-extensions', async () => reloadExtensions());
+
+// ========== 扩展 / 用户脚本 启用·禁用 ==========
+// 切换扩展启用状态：禁用时先从会话卸载（若已加载），再写禁用标记并重载；启用时清除标记并重载
+ipcMain.handle('toggle-extension', async (_evt, sourcePath, enabled) => {
+  try {
+    if (!sourcePath) return { success: false, error: '缺少扩展标识' };
+    if (typeof enabled !== 'boolean') return { success: false, error: `非法的启用状态参数: ${enabled}` };
+    const settings = loadExtensionSettings(dataDir);
+    if (!settings.disabled) settings.disabled = {};
+    if (enabled) {
+      // 一个扩展来源可能以多种键形式存在（绝对路径 / base: / data:），
+      // 旧版本数据里可能残留绝对路径键，仅按 sourcePath 删除会漏掉，导致「禁用后无法启用」。
+      // 这里一次性清除所有等价键。
+      for (const k of equivalentKeys(sourcePath, baseDir, dataDir)) {
+        delete settings.disabled[k];
+      }
+    } else {
+      // 若该扩展当前已加载，先从会话中卸载
+      const item = extensionLoadResults.find(r => r.success && r.sourcePath === sourcePath && !r.disabled && r.id);
+      if (item && item.id && browserViewSession) {
+        try { browserViewSession.removeExtension(item.id); } catch (e) { /* 可能已卸载 */ }
+      }
+      settings.disabled[sourcePath] = true;
+    }
+    saveExtensionSettings(dataDir, settings);
+    const reload = await reloadExtensions();
+    return { success: reload.success, extensions: reload.extensions };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+// 切换用户脚本启用状态：禁用后不再注入该脚本
+ipcMain.handle('toggle-user-script', async (_evt, scriptId, enabled) => {
+  try {
+    if (!scriptId) return { success: false, error: '缺少脚本标识' };
+    if (typeof enabled !== 'boolean') return { success: false, error: `非法的启用状态参数: ${enabled}` };
+    const settings = loadExtensionSettings(dataDir);
+    if (!settings.disabledScripts) settings.disabledScripts = {};
+    if (enabled) {
+      delete settings.disabledScripts[scriptId];
+    } else {
+      settings.disabledScripts[scriptId] = true;
+    }
+    saveExtensionSettings(dataDir, settings);
+    userScripts = loadUserScripts(baseDir, loadAppConfig(app).userScripts, getDisabledUserScriptNames());
+    return { success: true, count: userScripts.length };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+// ========== 用户样式元数据 / 变量配置 / 启停 / 删除 / 重载 ==========
+ipcMain.handle('list-user-styles-meta', async () => {
+  try {
+    return { success: true, styles: listUserStylesMeta(dataDir) };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('get-user-style-detail', async (_evt, styleId) => {
+  try {
+    const all = loadUserStyles(dataDir);
+    const s = all.find(x => x.id === styleId);
+    if (!s) return { success: false, error: '未找到该用户样式' };
+    return {
+      success: true,
+      style: {
+        id: s.id,
+        name: s.name,
+        description: s.description,
+        version: s.version,
+        author: s.author,
+        enabled: s.enabled,
+        fileName: s.fileName,
+        vars: s.vars,
+        varValues: s.varValues,
+        matches: s.matches.map(p => typeof p === 'object' ? `regexp:${p.regexp}` : p)
+      }
+    };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('save-user-style-overrides', async (_evt, styleId, patch) => {
+  try {
+    saveUserStyleVarOverrides(dataDir, styleId, patch || {});
+    // 重新加载内存中 userStyles，保持最新覆盖值 / enabled
+    userStyles = loadUserStyles(dataDir);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('toggle-user-style', async (_evt, styleId, enabled) => {
+  try {
+    if (typeof enabled !== 'boolean') return { success: false, error: `非法的启用状态参数: ${enabled}` };
+    toggleUserStyle(dataDir, styleId, enabled);
+    userStyles = loadUserStyles(dataDir);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('delete-user-style', async (_evt, styleId) => {
+  try {
+    deleteUserStyle(dataDir, styleId);
+    userStyles = loadUserStyles(dataDir);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('reload-user-styles', async () => {
+  try {
+    userStyles = loadUserStyles(dataDir);
+    return { success: true, count: userStyles.length };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+// 编译预览：给定 styleId + 可选覆盖值，返回处理后的 CSS（供 UI 预览/调试）
+ipcMain.handle('preview-user-style-css', async (_evt, styleId, overrideValues) => {
+  try {
+    const all = loadUserStyles(dataDir);
+    const s = all.find(x => x.id === styleId);
+    if (!s) return { success: false, error: '未找到该用户样式' };
+    const patch = overrideValues && typeof overrideValues === 'object' ? overrideValues : null;
+    // 临时合并覆盖值（不写盘），构造一次带 override 的 settings 快照
+    let css;
+    if (patch) {
+      const tmp = {};
+      tmp[styleId] = { enabled: true, values: { ...(s.varValues || {}), ...patch } };
+      css = compileUserStyle({ ...s, id: styleId }, tmp);
+    } else {
+      css = compileUserStyle(s, {});
+    }
+    return { success: true, css };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
 
 // To-Do
 const todoDir = path.join(dataDir, 'todos');
@@ -3705,7 +4456,7 @@ ipcMain.handle('set-overlay-material', async (event, material) => {
     return true;
   } catch (e) { logToFile('WARN', '切换遮罩材质失败', e.message); return false; }
 });
-ipcMain.handle('get-focus-settings', async () => ({ ...focusSettings, ...(pendingMinSettings || {}) }));
+ipcMain.handle('get-focus-settings', async () => ({ ...focusSettings, ...(pendingMinSettings || {}), dailyTaskRatio: pendingTaskRatio != null ? pendingTaskRatio : (focusSettings.dailyTaskRatio ?? 0.6) }));
 
 // ========== 每日任务 ==========
 function getTodayStr() { return new Date().toISOString().slice(0, 10); }
@@ -3814,11 +4565,12 @@ function getDailyTaskState() {
 }
 
 function getDailyTaskProgress() {
-  if (!dailyTasks.length) return { total: 0, completed: 0, ratio: 1, threshold: 0.6, met: true };
+  const threshold = focusSettings.dailyTaskRatio || 0.6; // 自定义任务完成比例（锁屏时段结束后是否保持锁定的判定阈值）
+  if (!dailyTasks.length) return { total: 0, completed: 0, ratio: 1, threshold, met: true };
   const state = getDailyTaskState();
   const completed = dailyTasks.filter(t => !!state[t.id]).length;
   const ratio = completed / dailyTasks.length;
-  return { total: dailyTasks.length, completed, ratio, threshold: 0.6, met: ratio >= 0.6 };
+  return { total: dailyTasks.length, completed, ratio, threshold, met: ratio >= threshold };
 }
 
 // 返回 { id, name, minutes, completed } 并合并完成率，供 UI 展示
@@ -3836,6 +4588,17 @@ ipcMain.handle('toggle-daily-task', async (event, taskId) => {
   const snap = dailyTasksSnapshot();
   if (overlayWin && !overlayWin.isDestroyed()) {
     overlayWin.webContents.send('daily-task-updated', snap);
+    // 锁屏时段已结束：实时推送阻塞/解除状态，让常驻提示立即更新
+    if (!isInLockTime()) {
+      if (!snap.met) {
+        overlayWin.webContents.send('daily-task-blocking', {
+          completed: snap.completed, total: snap.total,
+          need: Math.ceil(snap.total * snap.threshold)
+        });
+      } else {
+        overlayWin.webContents.send('daily-task-unblocked', {});
+      }
+    }
   }
   return { success: true, total: snap.total, completed: snap.completed, ratio: snap.ratio, threshold: snap.threshold, met: snap.met };
 });
@@ -3850,6 +4613,17 @@ ipcMain.handle('set-daily-task', async (event, taskId, completed) => {
   const snap = dailyTasksSnapshot();
   if (overlayWin && !overlayWin.isDestroyed()) {
     overlayWin.webContents.send('daily-task-updated', snap);
+    // 锁屏时段已结束：实时推送阻塞/解除状态，让常驻提示立即更新
+    if (!isInLockTime()) {
+      if (!snap.met) {
+        overlayWin.webContents.send('daily-task-blocking', {
+          completed: snap.completed, total: snap.total,
+          need: Math.ceil(snap.total * snap.threshold)
+        });
+      } else {
+        overlayWin.webContents.send('daily-task-unblocked', {});
+      }
+    }
   }
   return { success: true, total: snap.total, completed: snap.completed, ratio: snap.ratio, threshold: snap.threshold, met: snap.met };
 });
@@ -3871,22 +4645,25 @@ ipcMain.handle('save-focus-settings', async (event, settings) => {
       instantMode: !!settings.instantMode && instantModeEnabled,
       shortcuts: focusSettings.shortcuts || { ...DEFAULT_SHORTCUTS }, // 保留快捷键配置不被覆盖
       dailyTaskDate: focusSettings.dailyTaskDate || '',
-      dailyTaskCompleted: (focusSettings.dailyTaskCompleted && typeof focusSettings.dailyTaskCompleted === 'object') ? focusSettings.dailyTaskCompleted : {}
+      dailyTaskCompleted: (focusSettings.dailyTaskCompleted && typeof focusSettings.dailyTaskCompleted === 'object') ? focusSettings.dailyTaskCompleted : {},
+      dailyTaskRatio: Math.max(0.1, Math.min(1, Number(settings.dailyTaskRatio) || 0.6))
     };
-    // 两个最短时长选项：保存后不立即生效，等下次出现遮罩时才应用；其余立即生效
+    // 两个最短时长选项 + 自定义任务完成比例：保存后不立即生效，等下次出现遮罩时才应用；其余立即生效
     pendingMinSettings = {
       minLockMinutes: validated.minLockMinutes,
       siteLockMinMinutes: validated.siteLockMinMinutes
     };
+    pendingTaskRatio = validated.dailyTaskRatio;
     focusSettings = {
       ...validated,
       minLockMinutes: focusSettings.minLockMinutes,
-      siteLockMinMinutes: focusSettings.siteLockMinMinutes
+      siteLockMinMinutes: focusSettings.siteLockMinMinutes,
+      dailyTaskRatio: focusSettings.dailyTaskRatio ?? 0.6
     };
     instantMode = focusSettings.instantMode && instantModeEnabled; // 同步全局即时模式状态，保存后立即生效；被禁用时强制关闭
     saveFocusSettingsToFile(validated); // 文件持久化新值，重启后同样下次遮罩生效
   }
-  return { ...focusSettings, ...(pendingMinSettings || {}) };
+  return { ...focusSettings, ...(pendingMinSettings || {}), dailyTaskRatio: pendingTaskRatio != null ? pendingTaskRatio : (focusSettings.dailyTaskRatio ?? 0.6) };
 });
 // ========== 快捷键自定义 ==========
 ipcMain.handle('get-shortcuts', async () => ({ ...focusSettings.shortcuts || {} }));
@@ -3933,7 +4710,8 @@ ipcMain.handle('get-config-for-edit', async () => {
         url: s.url || '',
         zoom: typeof s.zoom === 'number' ? s.zoom : 1,
         aliases: Array.isArray(s.aliases) ? s.aliases : [],
-        pinned: !!s.pinned
+        pinned: !!s.pinned,
+        persistent: s.persistent !== false
       })),
       dailyTasks: normalizeDailyTasks(cfg.dailyTasks).map(t => ({ name: t.name, minutes: t.minutes }))
     };
@@ -3964,32 +4742,50 @@ ipcMain.handle('save-config-from-edit', async (event, data) => {
         timeRanges.push({ start: seg.slice(0, 5), end: seg.slice(6) });
       }
     }
-    // 网站列表：每行 名称 | 网址 | 缩放 | 固定(是/否) | 别名1,别名2
+    // 网站列表：结构化数组（UI 编辑器）或文本行（每行 名称 | 网址 | 缩放 | 固定(是/否) | 别名1,别名2）
     const sites = [];
-    const sitesText = (data && data.sites ? String(data.sites) : '').trim();
-    if (sitesText) {
-      sitesText.split(/\r?\n/).forEach((line, i) => {
-        const row = line.trim();
-        if (!row) return;
-        const parts = row.split('|').map(p => p.trim());
-        if (parts.length < 2) { errors.push(`网站第 ${i + 1} 行格式错误：至少需要「名称 | 网址」`); return; }
-        const name = parts[0];
-        const url = parts[1];
-        const zoom = parts.length > 2 && parts[2] !== '' ? parseFloat(parts[2]) : 1;
-        const pinnedRaw = parts.length > 3 ? parts[3] : '';
-        const aliases = parts.length > 4 && parts[4] ? parts[4].split(',').map(a => a.trim()).filter(Boolean) : [];
-        if (!name) { errors.push(`网站第 ${i + 1} 行缺少名称`); return; }
-        if (!/^https?:\/\//i.test(url)) { errors.push(`网站「${name}」的网址无效：${url}（需以 http:// 或 https:// 开头）`); return; }
-        if (isNaN(zoom) || zoom <= 0 || zoom > 5) { errors.push(`网站「${name}」的缩放无效：${parts[2]}（应为 0.1~5）`); return; }
-        sites.push({
-          id: name.toLowerCase().replace(/[^a-z0-9]+/g, '_'),
-          name,
-          url,
-          zoom,
-          aliases,
-          pinned: /^(是|true|1|固定)$/i.test(pinnedRaw)
-        });
+    const usedSiteIds = new Set();
+    const pushSite = (name, url, zoom, aliases, pinned, persistent, idxLabel) => {
+      if (!name) { errors.push(`${idxLabel}缺少名称`); return; }
+      if (!/^https?:\/\//i.test(url)) { errors.push(`网站「${name}」的网址无效：${url}（需以 http:// 或 https:// 开头）`); return; }
+      if (isNaN(zoom) || zoom <= 0 || zoom > 5) { errors.push(`网站「${name}」的缩放无效：${zoom}（应为 0.1~5）`); return; }
+      // id 由名称生成，冲突时追加 _2、_3… 保证唯一（唯一 id 是 BrowserView 不叠加的前提）
+      let id = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'site';
+      let base = id, n = 2;
+      while (usedSiteIds.has(id)) id = `${base}_${n++}`;
+      usedSiteIds.add(id);
+      sites.push({ id, name, url, zoom, aliases, pinned, persistent });
+    };
+    const sitesArr = data && Array.isArray(data.sites) ? data.sites : null;
+    if (sitesArr) {
+      sitesArr.forEach((s, i) => {
+        const name = (s && s.name ? String(s.name) : '').trim();
+        const url = (s && s.url ? String(s.url) : '').trim();
+        if (!name && !url) return; // 完全空行（新增未填写）直接忽略
+        let zoom = s && s.zoom !== undefined && s.zoom !== null ? s.zoom : 1;
+        if (typeof zoom !== 'number') zoom = parseFloat(zoom);
+        if (isNaN(zoom)) zoom = 1;
+        const aliases = Array.isArray(s && s.aliases) ? s.aliases.map(a => String(a).trim()).filter(Boolean) : [];
+        const pinned = !!(s && s.pinned);
+        const persistent = !(s && s.persistent === false);
+        pushSite(name, url, zoom, aliases, pinned, persistent, `网站第 ${i + 1} 项`);
       });
+    } else {
+      const sitesText = (data && data.sites ? String(data.sites) : '').trim();
+      if (sitesText) {
+        sitesText.split(/\r?\n/).forEach((line, i) => {
+          const row = line.trim();
+          if (!row) return;
+          const parts = row.split('|').map(p => p.trim());
+          if (parts.length < 2) { errors.push(`网站第 ${i + 1} 行格式错误：至少需要「名称 | 网址」`); return; }
+          const name = parts[0];
+          const url = parts[1];
+          const zoom = parts.length > 2 && parts[2] !== '' ? parseFloat(parts[2]) : 1;
+          const pinnedRaw = parts.length > 3 ? parts[3] : '';
+          const aliases = parts.length > 4 && parts[4] ? parts[4].split(',').map(a => a.trim()).filter(Boolean) : [];
+          pushSite(name, url, zoom, aliases, /^(是|true|1|固定)$/i.test(pinnedRaw), true, `网站第 ${i + 1} 行`);
+        });
+      }
     }
     // 每日任务：每行「任务名 | 预计分钟数」，分钟数可选（默认 0），空行忽略；| 之后仅接受纯数字（分钟）或为空
     const dailyTasksParsed = [];
@@ -4091,13 +4887,31 @@ app.whenReady().then(async () => {
   }
   initFocusStats();
   browserViewSession = session.fromPartition(BROWSER_VIEW_PARTITION);
+  // 限制持久 partition 磁盘 / 内存缓存大小，避免长时间运行后 cache 膨胀到数 GB
+  try {
+    const SESSION_CACHE_MAX_BYTES = 400 * 1024 * 1024; // 400MB 上限：对 3~5 个前台/常驻网站足够；超出 Chromium 自动 LRU 淘汰
+    if (browserViewSession.setUserAgent && typeof browserViewSession.setCacheSize === 'function') {
+      browserViewSession.setCacheSize(SESSION_CACHE_MAX_BYTES);
+    }
+  } catch (err) {
+    logToFile('WARN', '设置会话缓存上限失败', err.message);
+  }
+  // 每 4 小时清理一次代码缓存，避免 V8 code cache 随页面变化无限累积
+  setInterval(() => {
+    if (!browserViewSession) return;
+    try {
+      if (typeof browserViewSession.clearStorageData === 'function') {
+        browserViewSession.clearStorageData({ storages: [] }).catch(() => {});
+      }
+    } catch (_) {}
+  }, 4 * 3600 * 1000);
   // 登录/登出等 cookie 变化后立即落盘，防止异常退出丢登录态
   try {
     browserViewSession.cookies.on('changed', scheduleCookieFlush);
   } catch (err) {
     logToFile('WARN', '注册 Cookie 写回监听失败', err.message);
   }
-  extensionsReady = loadCrxExtensions(app, browserViewSession, baseDir, logToFile)
+  extensionsReady = loadCrxExtensions(app, browserViewSession, baseDir, dataDir, logToFile)
     .then(results => { extensionLoadResults = results; })
     .catch(err => {
       extensionLoadResults = [];
@@ -4159,7 +4973,32 @@ app.on('before-quit', () => {
   // 删除看门狗计划任务（task 与 proc 模式都清理，配合优雅退出标记双保险，防止优雅退出后仍被拉起）
   spawn('schtasks', ['/Delete', '/TN', GUARD_TASK_NAME, '/F'], { windowsHide: true, stdio: 'ignore' });
   spawn('schtasks', ['/Delete', '/TN', GUARD_PROC_TASK_NAME, '/F'], { windowsHide: true, stdio: 'ignore' });
+  // 关闭所有扩展 UI 窗口（before-quit 阶段若用户手动关遮罩后打开的窗口可能仍存在）
+  for (const w of [...openExtensionWindows]) {
+    try { if (w && !w.isDestroyed()) w.close(); } catch (_) {}
+    openExtensionWindows.delete(w);
+  }
+  // 统一销毁所有站点视图（常驻也不留，进程即将退出，保证渲染进程被回收，不会把内存"甩给" Chromium 孤儿进程）
+  for (const [id] of [...viewsMap]) destroySiteView(id);
   flushBrowserViewStorage();
+  // 退出时清理持久 partition 的缓存/代码缓存：不 touch cookie/localStorage/IndexedDB（保留登录态）
+  // 只清 file/cache/codecache/serviceworker，这些对 >1G 占用贡献最大
+  if (browserViewSession) {
+    try {
+      browserViewSession.clearCache();
+    } catch (_) {}
+    try {
+      // storages: appcache / cache storage / service workers / indexedDB 不要清（影响登录态/离线功能）
+      // 这里只清 code cache，对保留登录态安全
+      if (typeof browserViewSession.clearStorageData === 'function') {
+        browserViewSession.clearStorageData({
+          origin: undefined, // 全部 origin
+          quotas: ['temporary', 'persistent'],
+          storages: []
+        }).catch(() => {});
+      }
+    } catch (_) {}
+  }
   persistFocusStats();
   clearInterval(pomodoro.tickTimer);
   clearInterval(pomodoro.persistTimer);
@@ -4173,9 +5012,6 @@ app.on('before-quit', () => {
   if (activeTimer) clearTimeout(activeTimer.timeoutId);
   disableSilence();
   unmuteTargetProcessesSync();
-  if (overlayWin && !overlayWin.isDestroyed()) {
-    viewsMap.forEach((view) => { overlayWin.removeBrowserView(view); });
-  }
   if (musicPopupWin && !musicPopupWin.isDestroyed()) {
     musicPopupWin.close();
   }
