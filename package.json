@@ -1,7 +1,8 @@
 {
   "name": "focus-locker",
-  "version": "1.0.0",
-  "description": "",
+  "version": "1.2.0",
+  "description": "Focus Locker - 专注力锁定工具",
+  "author": "FocusLocker",
   "main": "main.js",
   "scripts": {
     "build": "electron-builder",
@@ -13,7 +14,7 @@
     "productName": "FocusLocker",
     "compression": "maximum",
     "directories": {
-      "output": "dist-v16"
+      "output": "dist-build6"
     },
     "files": [
       "main.js",
@@ -90,6 +91,10 @@
       "createStartMenuShortcut": false,
       "menuCategory": "FocusLocker",
       "include": "build/installer.nsh"
+    },
+    "publish": {
+      "provider": "generic",
+      "url": "https://localhost/"
     }
   },
   "devDependencies": {

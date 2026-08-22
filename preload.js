@@ -90,6 +90,8 @@ contextBridge.exposeInMainWorld('utils', {
   // 文件
   openFileDialog: () => ipcRenderer.invoke('open-file-dialog'),
   parseFile: (filePath) => ipcRenderer.invoke('parse-file', filePath),
+  // 读取图片为 data URL（base64 内联），供 DeepSeek Vision 多模态调用
+  readImageDataUrl: (filePath) => ipcRenderer.invoke('read-image-data-url', filePath),
   saveFile: (content, defaultName) => ipcRenderer.invoke('save-file', content, defaultName),
   importUserScript: () => ipcRenderer.invoke('import-user-script-dialog'),
   getExtensionStatus: () => ipcRenderer.invoke('get-extension-status'),
@@ -112,8 +114,22 @@ contextBridge.exposeInMainWorld('utils', {
   loadTodos: (dateStr) => ipcRenderer.invoke('load-todos', dateStr),
   saveTodos: (dateStr, todos) => ipcRenderer.invoke('save-todos', dateStr, todos),
 
+  // 每日任务
+  getDailyTasks: () => ipcRenderer.invoke('get-daily-tasks'),
+  toggleDailyTask: (taskId) => ipcRenderer.invoke('toggle-daily-task', taskId),
+  setDailyTask: (taskId, completed) => ipcRenderer.invoke('set-daily-task', taskId, completed),
+  onDailyTaskUpdated: (callback) => {
+    ipcRenderer.on('daily-task-updated', (event, data) => callback(data));
+  },
+  onDailyTaskStarted: (callback) => {
+    ipcRenderer.on('daily-task-started', (event, data) => callback(data));
+  },
+  onDailyTaskBlocking: (callback) => {
+    ipcRenderer.on('daily-task-blocking', (event, data) => callback(data));
+  },
+
   // 倒计时
-  setTimer: (seconds, label) => ipcRenderer.send('set-timer', seconds, label),
+  setTimer: (seconds, label, taskId) => ipcRenderer.send('set-timer', seconds, label, taskId || null),
   getTimerState: () => ipcRenderer.invoke('get-timer-state'),
   cancelTimer: () => ipcRenderer.invoke('cancel-timer'),
   onTimerStarted: (callback) => {

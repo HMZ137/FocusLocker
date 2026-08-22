@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const { exec, execSync, spawn } = require('child_process');
 const https = require('https');
-const { getBaseDir, loadAppConfig, saveConfigPatch, loadRawConfig } = require('./main/config');
+const { getBaseDir, getDataDir, loadAppConfig, saveConfigPatch, loadRawConfig, normalizeDailyTasks } = require('./main/config');
 const { importUserScript, injectUserScripts, loadCrxExtensions, loadUserScripts } = require('./main/extensions');
 const { MicaBrowserWindow, IS_WINDOWS_11 } = require('mica-electron');
 const BROWSER_VIEW_PARTITION = 'persist:focus-locker-browser-views';
@@ -33,6 +33,7 @@ const mammoth = require('mammoth');
 const csv = require('csv-parser');
 const { Readable } = require('stream');
 const baseDir = getBaseDir(app);
+const dataDir = getDataDir(app); // 用户可变数据目录（userData）：跨重装保留
 const svvPath = path.join(baseDir, 'SoundVolumeView.exe');
 
 // ========== Electron 配置 ==========
@@ -51,12 +52,21 @@ try {
   const gotLock = app.requestSingleInstanceLock();
   if (!gotLock && !isTestMode) {
     logToFile('WARN', '检测到已有实例运行，退出当前实例');
-    // 用 app.exit() 立即退出：若用 app.quit() 在 ready 前只是排队，whenReady 仍会执行
-    // （第二实例会短暂创建遮罩、并可能误删看门狗任务/误写优雅退出标记）
     app.exit(0);
   } else if (gotLock) {
     app.on('second-instance', (event, argv) => {
       try {
+        // 测试模式启动：生产实例收到信号后销毁自身遮罩，让测试实例独占
+        const wantTest = argv.includes('--test');
+        if (wantTest) {
+          logToFile('INFO', 'second-instance 收到测试模式请求，销毁生产遮罩让位');
+          testHandoffActive = true;
+          if (overlayWin && !overlayWin.isDestroyed()) {
+            overlayWin.destroy();
+            cleanupOverlay();
+          }
+          return;
+        }
         // 快速模式请求：由已运行实例直接执行快速锁屏（保持单实例，避免 cookie 库并发写冲突）
         const wantQuick = argv.includes('--quick-start') || argv.includes('--quick');
         if (wantQuick) {
@@ -93,6 +103,8 @@ let guardMode = 'task';   // 看门狗模式：task=计划任务（默认，分�
 let guardEnabled = true;  // 看门狗总开关：false 时禁用"被强杀后自动重启"监测
 let instantMode = false;  // 即时模式：任意时间直接紧急退出（跳过冷却/验证码/时长限制），遮罩顶部胶囊提醒
 let instantModeEnabled = true; // 允许启用即时模式（config.js 参数）：false 时即时模式不可开启、不生效
+let testHandoffActive = false;  // 生产实例收到测试模式 second-instance 信号后置 true：阻止 checkTimeAndToggle 重建遮罩
+const testLockFile = path.join(baseDir, '.test-active'); // 测试实例存活标记文件：退出时删除，生产实例据此恢复调度
 
 let forceAlwaysOnTop = true;
 let isMusicPopped = false;
@@ -101,6 +113,9 @@ let isEmergencyBreak = false;
 let emergencyCooldownUntil = 0;
 let emergencyRestoreTimer = null;
 let emergencyExemptUntil = 0;   // 紧急退出后：当前锁屏时段不再自动锁屏（毫秒时间戳）
+let cooldownPauseTime = 0;       // 冷却暂停时间戳：遮罩激活期间冻结冷却计时，关闭遮罩时顺延
+let dailyTasks = [];             // 每日任务列表（来自 config.js）
+let emergencyExitInProgress = false; // 紧急退出正在关闭遮罩：关闭事件据此放行，不受每日任务拦截
 
 let extendedUntil = 0;
 let extendTimer = null;
@@ -119,7 +134,7 @@ const DEFAULT_SHORTCUTS = {
 const SHORTCUT_ACTIONS = { switchSite: 'switchSite', toggleAlwaysOnTop: 'toggleAlwaysOnTop', emergencyExit: 'emergencyExit', toggleAgent: 'toggleAgent', extendLock: 'extendLock', toggleSiteLock: 'toggleSiteLock', relock: 'relock' };
 
 // ===== 强化锁定 / 番茄钟 / 专注统计 =====
-const FOCUS_SETTINGS_FILE = path.join(baseDir, 'focus-settings.json');
+const FOCUS_SETTINGS_FILE = path.join(dataDir, 'focus-settings.json');
 let focusSettings = { minLockMinutes: 0, verifyCodeEnabled: true, focusLen: 25, breakLen: 5, siteLockMinMinutes: 0, timerSyncPomodoro: true, instantMode: false, shortcuts: { ...DEFAULT_SHORTCUTS } };
 let pendingMinSettings = null; // 已保存但下次出现遮罩才应用的两个最短时长设置
 let lockStartedAt = null;   // 本次锁屏开始时间（用于最短锁定时长校验）
@@ -160,7 +175,7 @@ const AMBIENT_LABELS = { rain: '雨声', fire: '篝火', waves: '海浪', white:
 let ambientState = { sounds: {}, masterVolume: 60 };
 
 // ===== 网站使用时长统计 =====
-const SITE_STATS_FILE = path.join(baseDir, 'site-stats.json');
+const SITE_STATS_FILE = path.join(dataDir, 'site-stats.json');
 let siteUsage = {};          // { 'YYYY-MM-DD': { siteId: 秒数 } }
 let siteUsageDate = null;
 let siteUsageTickTimer = null;
@@ -290,6 +305,20 @@ const tools = [
           label: { type: "string", description: "倒计时标签（可选）" }
         },
         required: []
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "start_daily_task",
+      description: "开始一个每日任务并启动其绑定的倒计时。传入任务名称（如“背单词”），系统会匹配 config.js 中配置的每日任务并按其设定时长启动倒计时。当用户说“开始xx任务”时调用此工具。",
+      parameters: {
+        type: "object",
+        properties: {
+          task_name: { type: "string", description: "要开始的任务名称" }
+        },
+        required: ["task_name"]
       }
     }
   },
@@ -511,6 +540,7 @@ function loadConfig() {
     deepseekApiKey = config.deepseekApiKey;
     siteList = config.sites;
     timeRanges = config.timeRanges;
+    dailyTasks = Array.isArray(config.dailyTasks) ? config.dailyTasks : [];
     userScripts = loadUserScripts(config.baseDir, config.userScripts);
     logToFile('INFO', '配置加载完成', {
       configPath: config.configPath,
@@ -1207,7 +1237,8 @@ function extendLockTime(minutes) {
 }
 
 // ========== 倒计时核心函数 ==========
-function startTimer(seconds, label) {
+// taskId（可选）：若倒计时由 start_daily_task 触发，传入任务 id，结束时 timer-done 事件 payload 带上，渲染层据此把任务标记完成
+function startTimer(seconds, label, taskId) {
   if (!label) label = '倒计时';
   if (!(Number.isFinite(seconds) && seconds > 0)) return false;
   if (seconds > 86400) return false; // 防御：倒计时不超过 24 小时，避免 setTimeout 溢出导致异常
@@ -1218,8 +1249,8 @@ function startTimer(seconds, label) {
   const endTime = Date.now() + seconds * 1000;
   const timeoutId = setTimeout(() => {
     if (overlayWin && !overlayWin.isDestroyed()) {
-      // 发送事件让前端显示通知
-      overlayWin.webContents.send('timer-done', { label, endTime });
+      // 发送事件让前端显示通知；taskId 存在时前端可据此把对应每日任务标记完成
+      overlayWin.webContents.send('timer-done', { label, endTime, taskId: taskId || null });
     }
     // 若番茄钟剩余时长被倒计时接管，倒计时结束即完成本轮专注（与番茄钟完成逻辑一致）
     if (timerPomodoroSynced) {
@@ -1236,7 +1267,7 @@ function startTimer(seconds, label) {
     }
     activeTimer = null;
   }, seconds * 1000);
-  activeTimer = { timeoutId, endTime, label, seconds };
+  activeTimer = { timeoutId, endTime, label, seconds, taskId: taskId || null };
   // 番茄钟联动（由 focusSettings.timerSyncPomodoro 开关控制）：
   // 原则：倒计时时长小于番茄钟当前时长时二者不同步（倒计时独立结束，番茄钟继续），
   //       倒计时时长不小于番茄钟当前时长时，番茄钟剩余同步到倒计时并跟随一起结束。
@@ -1291,16 +1322,31 @@ const AGENT_SYSTEM_PROMPT = `你是 Focus Locker 的专注助手，运行在锁�
 5. 工具返回 error 时，向用户说明失败原因，并给出可行的替代方案。
 6. 全部回答使用中文，简洁友好；每次操作后简要汇报执行结果。`;
 
+// 检测消息中是否包含图片：DeepSeek Vision 要求图片只能出现在 user 消息的 content 数组里（type=image_url）
+// 文档：https://api-docs.deepseek.com/guides/vision/ —— 传给普通 V4-Flash 会直接报错，故按需切换 vision 模型
+function messagesContainImage(messages) {
+  if (!Array.isArray(messages)) return false;
+  return messages.some(m => {
+    if (!m) return false;
+    if (Array.isArray(m.content)) {
+      return m.content.some(c => c && c.type === 'image_url');
+    }
+    return false;
+  });
+}
+
 function callDeepSeekAPI(messages, stream = true) {
   return new Promise((resolve, reject) => {
     if (!deepseekApiKey) {
       reject(new Error('未配置 DeepSeek API Key'));
       return;
     }
+    const hasImage = messagesContainImage(messages);
     const abortController = new AbortController();
     currentAbortController = abortController;
     const requestData = JSON.stringify({
-      model: 'deepseek-v4-flash',
+      // 有图片附件走 vision 模型，无图片走默认文本模型（vision 在纯文本任务上与 V4-Flash 持平，按需切换即可）
+      model: hasImage ? 'deepseek-v4-flash-vision-exp' : 'deepseek-v4-flash',
       messages: messages,
       tools: tools,
       tool_choice: 'auto',
@@ -1444,7 +1490,7 @@ const DEFAULT_QUOTES_MAIN = [
 
 function getQuotesForAgent() {
   try {
-    const file = path.join(baseDir, 'quotes.json');
+    const file = path.join(dataDir, 'quotes.json');
     if (fs.existsSync(file)) {
       const q = JSON.parse(fs.readFileSync(file, 'utf-8'));
       if (Array.isArray(q) && q.length) {
@@ -1531,6 +1577,22 @@ async function executeToolCall(toolName, args) {
       const label = args.label || '倒计时';
       startTimer(seconds, label);
       return { success: true, message: `倒计时已设置：${label}，${seconds} 秒后提醒`, endTime: activeTimer?.endTime };
+    }
+    case 'start_daily_task': {
+      const target = (args.task_name || '').toString().toLowerCase().trim();
+      if (!target) return { error: '未指定任务名称' };
+      if (!dailyTasks.length) return { error: '当前未配置每日任务' };
+      let task = dailyTasks.find(t => (t.name || '').toLowerCase() === target);
+      if (!task) task = dailyTasks.find(t => (t.name || '').toLowerCase().includes(target));
+      if (!task) return { error: `未找到匹配的任务：${args.task_name}。可用任务：${dailyTasks.map(t => t.name).join('、')}` };
+      const minutes = Number(task.minutes);
+      if (!Number.isFinite(minutes) || minutes <= 0) return { error: `任务「${task.name}」未配置有效时长` };
+      const seconds = Math.min(Math.round(minutes * 60), 86400);
+      startTimer(seconds, task.name, task.id);
+      if (overlayWin && !overlayWin.isDestroyed()) {
+        overlayWin.webContents.send('daily-task-started', { id: task.id, name: task.name, minutes, seconds });
+      }
+      return { success: true, message: `已开始任务「${task.name}」的倒计时：${minutes} 分钟`, task: task.name, minutes };
     }
         case 'start_timer': {
       timerStartTime = Date.now();
@@ -1788,7 +1850,7 @@ async function executeToolCall(toolName, args) {
 }
 
 async function loadTodosFromFile(dateStr) {
-  const filePath = path.join(baseDir, 'todos', `${dateStr}.json`);
+  const filePath = path.join(dataDir, 'todos', `${dateStr}.json`);
   try {
     if (!fs.existsSync(filePath)) return [];
     const data = fs.readFileSync(filePath, 'utf-8');
@@ -1812,7 +1874,9 @@ function loadFocusSettings() {
         siteLockMinMinutes: Math.max(0, Math.min(480, Number(s.siteLockMinMinutes) || 0)),
         timerSyncPomodoro: s.timerSyncPomodoro !== false,
         instantMode: s.instantMode === true,
-        shortcuts: { ...DEFAULT_SHORTCUTS, ...(s.shortcuts && typeof s.shortcuts === 'object' ? s.shortcuts : {}) }
+        shortcuts: { ...DEFAULT_SHORTCUTS, ...(s.shortcuts && typeof s.shortcuts === 'object' ? s.shortcuts : {}) },
+        dailyTaskDate: s.dailyTaskDate || '',
+        dailyTaskCompleted: (s.dailyTaskCompleted && typeof s.dailyTaskCompleted === 'object') ? s.dailyTaskCompleted : {}
       };
     }
   } catch (e) { logToFile('WARN', '读取锁定设置失败', e.message); }
@@ -1830,7 +1894,7 @@ function initFocusStats() {
   todayPomodorosLoaded = 0;
   todayHourly = Array(24).fill(0);
   try {
-    const file = path.join(baseDir, 'focus-stats.json');
+    const file = path.join(dataDir, 'focus-stats.json');
     if (fs.existsSync(file)) {
       const data = JSON.parse(fs.readFileSync(file, 'utf-8'));
       const raw = data[focusStatsDate];
@@ -1851,7 +1915,7 @@ function persistFocusStats() {
   todayFocusLoaded += pomodoro.pendingFocus;
   pomodoro.pendingFocus = 0;
   try {
-    const file = path.join(baseDir, 'focus-stats.json');
+    const file = path.join(dataDir, 'focus-stats.json');
     const data = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf-8')) : {};
     data[focusStatsDate] = {
       seconds: todayFocusLoaded,
@@ -1867,7 +1931,7 @@ function getTodayFocusSeconds() {
 function getFocusStatsData() {
   const stats = {};
   try {
-    const file = path.join(baseDir, 'focus-stats.json');
+    const file = path.join(dataDir, 'focus-stats.json');
     const data = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf-8')) : {};
     for (let i = 6; i >= 0; i--) {
       const key = todayStr(new Date(Date.now() - i * 86400000));
@@ -1882,7 +1946,7 @@ function getFocusStatsData() {
 function getFocusReportData(days = 14) {
   let data = {};
   try {
-    const file = path.join(baseDir, 'focus-stats.json');
+    const file = path.join(dataDir, 'focus-stats.json');
     data = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf-8')) : {};
   } catch (e) { /* ignore */ }
   const result = {};
@@ -2392,6 +2456,19 @@ function toggleAlwaysOnTop() {
 async function createOverlay() {
   if (overlayWin) return;
   siteViewActive = false; // 遮罩重建时重置网站视图状态
+  // 冷却恢复：遮罩重建时恢复冷却计时（顺延退出期间暂停的时间，确保锁屏期间冷却才倒计时）
+  if (cooldownPauseTime > 0) {
+    const pauseDuration = Date.now() - cooldownPauseTime;
+    emergencyCooldownUntil += pauseDuration;
+    cooldownPauseTime = 0;
+    logToFile('INFO', '紧急退出冷却已恢复（退出期间已暂停）', { pausedSec: Math.round(pauseDuration / 1000) });
+  }
+  // 保存当前锁屏会话时段：防止用户修改 config.js 后重启/强杀绕过锁屏
+  try {
+    focusSettings.lockSessionRanges = timeRanges.map(r => ({ start: r.start, end: r.end, startMin: r.startMin, endMin: r.endMin }));
+    saveFocusSettingsToFile({ ...focusSettings });
+    logToFile('INFO', '锁屏会话时段已持久化', { ranges: timeRanges.map(r => `${r.start}-${r.end}`) });
+  } catch (e) { logToFile('WARN', '保存锁屏会话时段失败', e.message); }
   // 已保存的最短时长设置：本次出现遮罩时应用
   if (pendingMinSettings) {
     focusSettings = { ...focusSettings, ...pendingMinSettings };
@@ -2457,16 +2534,47 @@ async function createOverlay() {
       overlayWin.webContents.send('always-on-top-changed', forceAlwaysOnTop);
       const extendRemaining = Math.max(0, Math.floor((extendedUntil - Date.now()) / 1000));
       sendExtendedStatus(extendRemaining);
+      // 遮罩重建后：若延长锁屏仍在有效期内但计时器已停（如紧急退出后恢复），重新启动计时器
+      if (extendedUntil > Date.now() && !extendTimer) {
+        extendTimer = setInterval(() => {
+          const nowTs = Date.now();
+          const remaining = Math.max(0, Math.floor((extendedUntil - nowTs) / 1000));
+          if (overlayWin && !overlayWin.isDestroyed()) {
+            overlayWin.webContents.send('extended-status', remaining);
+          }
+          if (remaining === 0) {
+            clearInterval(extendTimer);
+            extendTimer = null;
+            if (!isInLockTime() && overlayWin && !overlayWin.isDestroyed()) {
+              destroyOverlay();
+            }
+          }
+        }, 1000);
+        logToFile('INFO', '延长锁屏计时器已随遮罩重建恢复', { remainSec: extendRemaining });
+      }
     });
 
     // ===== 拦截窗口关闭 =====
     overlayWin.on('close', (event) => {
       if (isTestMode) return;
-      if (isInLockTime() || activeTimer) {
+      // 紧急退出正在关闭时放行；否则锁屏时段/倒计时/每日任务未达标均拦截关闭
+      const dailyProgress = getDailyTaskProgress();
+      const blockByDaily = !emergencyExitInProgress && !dailyProgress.met;
+      if (isInLockTime() || activeTimer || blockByDaily) {
         event.preventDefault();
+        // Defense in depth：若紧急退出进行中仍走到这里（理论上不会，emergencyExitInProgress 已在 doEmergencyExit/instantEmergencyExit 设为 true），
+        // 说明状态机被破坏 → 回滚冷却时间，避免「bug 导致无法退出却仍计入冷却」
+        if (emergencyExitInProgress) {
+          emergencyCooldownUntil = 0;
+          logToFile('WARN', '紧急退出进行中却被 close 拦截，已回滚冷却时间（defense in depth）');
+        }
         let msg = '当前';
         if (activeTimer) msg += '有倒计时进行中，';
         if (isInLockTime()) msg += '处于锁屏时段，';
+        if (blockByDaily) {
+          const need = Math.ceil(dailyProgress.total * dailyProgress.threshold);
+          msg += `每日任务完成率不足（${dailyProgress.completed}/${dailyProgress.total}，需完成 ${need} 项），`;
+        }
         msg += '无法关闭遮罩。请使用紧急退出功能 (Ctrl+Shift+Alt+F12) 或等待倒计时结束。';
         // 遮罩内提示（避免系统对话框被 browserView 遮挡）
         if (overlayWin && !overlayWin.isDestroyed()) {
@@ -2492,6 +2600,7 @@ function cleanupOverlay() {
     activeTimer = null;
     timerPomodoroSynced = false;
   }
+  emergencyExitInProgress = false; // 关闭完成，恢复拦截
   unregisterOverlayShortcuts();
   stopSiteUsageTracking();
   if (killTimer) { clearInterval(killTimer); killTimer = null; }
@@ -2500,6 +2609,11 @@ function cleanupOverlay() {
   disableSilence();
   unmuteTargetProcessesSync();
   sendCooldownStatus(0);
+  // 冷却暂停：遮罩关闭时暂停冷却计时（退出期间不消耗冷却时间，回到锁屏后冷却继续）
+  if (emergencyCooldownUntil > Date.now() && cooldownPauseTime === 0) {
+    cooldownPauseTime = Date.now();
+    logToFile('INFO', '紧急退出冷却已暂停（退出期间冻结）');
+  }
 
   viewsMap.forEach((view, id) => {
     if (isMusicPopped && musicPopupWin && !musicPopupWin.isDestroyed()) {
@@ -2522,6 +2636,13 @@ function cleanupOverlay() {
   lockStartedAt = null;
   siteLockActive = false; // 锁屏结束后解除网站锁定
   siteLockedAt = 0;
+  // 锁屏会话结束：清除会话时段保护，重新加载 config.js 以应用用户在锁定期间保存的变更
+  if (focusSettings.lockSessionRanges) {
+    delete focusSettings.lockSessionRanges;
+    saveFocusSettingsToFile({ ...focusSettings });
+    try { loadConfig(); } catch (e) { logToFile('WARN', '锁屏会话结束后 reload config 失败', e.message); }
+    logToFile('INFO', '锁屏会话已结束，已清除会话时段保护并重新加载 config.js');
+  }
   if (isTestMode && !isEmergencyBreak && !instantMode) {
     // 即时模式下关闭遮罩不退出进程（与生产行为一致），便于测试"退出后重新锁屏"
     if (checkTimer) { clearInterval(checkTimer); checkTimer = null; }
@@ -2554,9 +2675,10 @@ function emergencyExit(preSeconds) {
       return { success: false, reason: 'minLock', waitMinutes: wait };
     }
   }
-  // 冷却校验
-  if (Date.now() < emergencyCooldownUntil) {
-    const remaining = Math.ceil((emergencyCooldownUntil - Date.now()) / 1000);
+  // 冷却校验（遮罩激活期间冷却已暂停，按冻结时刻计算剩余）
+  const cooldownNow = cooldownPauseTime > 0 ? cooldownPauseTime : Date.now();
+  if (cooldownNow < emergencyCooldownUntil) {
+    const remaining = Math.ceil((emergencyCooldownUntil - cooldownNow) / 1000);
     sendCooldownStatus(remaining);
     return { success: false, reason: 'cooldown', remainingSeconds: remaining };
   }
@@ -2616,6 +2738,7 @@ function proceedEmergencyExit(preSeconds) {
 function renewEmergencyBreak() {
   logToFile('INFO', '防偷懒：紧急退出恢复时间顺延 60 秒');
   emergencyCooldownUntil = Date.now() + 20 * 60 * 1000;
+  cooldownPauseTime = Date.now(); // 重新暂停新冷却（退出期间不消耗冷却时间）
   if (emergencyRestoreTimer) clearTimeout(emergencyRestoreTimer);
   emergencyRestoreTimer = setTimeout(() => {
     isEmergencyBreak = false;
@@ -2636,14 +2759,15 @@ function doEmergencyExit(seconds) {
     timerPomodoroSynced = false;
   }
   if (extendTimer) { clearInterval(extendTimer); extendTimer = null; }
-  extendedUntil = 0; // 紧急退出同时解除延长锁屏
+  // 保留 extendedUntil：紧急退出后恢复锁屏时，剩余延长时长仍然有效
   if (emergencyRestoreTimer) {
     clearTimeout(emergencyRestoreTimer);
     emergencyRestoreTimer = null;
   }
-  // 先标记紧急退出状态再关闭遮罩，否则 close 事件会因"锁屏时段"拦截关闭
+  // 先标记紧急退出状态再关闭遮罩，否则 close 事件会因"锁屏时段"/"每日任务未达标"拦截关闭
   isEmergencyBreak = true;
   emergencyExited = true;
+  emergencyExitInProgress = true; // 放行 close 事件：close 拦截器据此跳过 60% 校验，避免紧急退出被卡死（cleanupOverlay 会在关闭完成后清零）
   emergencyCooldownUntil = Date.now() + 20 * 60 * 1000;
   emergencyExemptUntil = getCurrentRangeEnd(); // 本锁屏时段不再自动锁屏
   if (overlayWin && !overlayWin.isDestroyed()) {
@@ -2672,14 +2796,16 @@ function instantEmergencyExit() {
     timerPomodoroSynced = false;
   }
   if (extendTimer) { clearInterval(extendTimer); extendTimer = null; }
-  extendedUntil = 0;
+  // 保留 extendedUntil：即时退出后恢复锁屏时，剩余延长时长仍然有效
   if (emergencyRestoreTimer) {
     clearTimeout(emergencyRestoreTimer);
     emergencyRestoreTimer = null;
   }
   isEmergencyBreak = false;
   emergencyExited = false;
+  emergencyExitInProgress = true; // 放行 close 事件：即时模式紧急退出同样需要跳过 60% 校验（cleanupOverlay 关闭完成后清零）
   emergencyCooldownUntil = 0;   // 无冷却
+  cooldownPauseTime = 0;        // 清除暂停标记
   emergencyExemptUntil = getCurrentRangeEnd(); // 本锁屏时段不再自动锁屏
   if (overlayWin && !overlayWin.isDestroyed()) {
     overlayWin.close();
@@ -2763,8 +2889,8 @@ function flushStopwatchResult() {
   };
   timerStartTime = null;
   try {
-    fs.writeFileSync(path.join(baseDir, 'timer-result.json'), JSON.stringify(result, null, 2), 'utf-8');
-    logToFile('INFO', '锁屏结束，计时结果已写入根目录', result);
+    fs.writeFileSync(path.join(dataDir, 'timer-result.json'), JSON.stringify(result, null, 2), 'utf-8');
+    logToFile('INFO', '锁屏结束，计时结果已写入用户数据目录', result);
   } catch (e) {
     logToFile('WARN', '写入计时结果失败', e.message);
   }
@@ -2772,7 +2898,7 @@ function flushStopwatchResult() {
 // 次日启动时清除上次的计时结果文件
 function clearTimerResultFile() {
   try {
-    const filePath = path.join(baseDir, 'timer-result.json');
+    const filePath = path.join(dataDir, 'timer-result.json');
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
   } catch (e) {
     logToFile('WARN', '清除上次计时结果失败', e.message);
@@ -2781,12 +2907,51 @@ function clearTimerResultFile() {
 
 function checkTimeAndToggle() {
   if (isTestMode || emergencyExited) return;
+  // 测试模式交接：生产实例在测试实例运行期间不重建遮罩
+  if (testHandoffActive) {
+    let testRunning = false;
+    try {
+      const pidStr = fs.readFileSync(testLockFile, 'utf-8').trim();
+      const pid = parseInt(pidStr, 10);
+      if (Number.isFinite(pid) && pid > 0) {
+        process.kill(pid, 0); // 信号 0：不实际发信号，仅检测进程是否存在；不存在则抛异常
+        testRunning = true;
+      }
+    } catch (e) { /* 文件不存在或进程已终止 */ }
+    if (!testRunning) {
+      testHandoffActive = false;
+      try { fs.rmSync(testLockFile, { force: true }); } catch (e) {}
+      logToFile('INFO', '测试实例已退出，恢复生产锁屏调度');
+    } else {
+      return;
+    }
+  }
   if (isInLockTime() && !overlayWin) {
     minimizeAllWindows();
     setTimeout(() => createOverlay(), 300);
   } else if (!isInLockTime() && overlayWin) {
+    // 每日任务未达 60% 完成率：锁屏时段结束后保持锁定，直到完成率达标（未配置任务时不拦截）
+    const dailyProgress = getDailyTaskProgress();
+    if (!dailyProgress.met) {
+      notifyDailyTaskBlocking(dailyProgress);
+      return;
+    }
+    dailyTaskBlockNotifiedAt = 0; // 达标后重置通知节流
     destroyOverlay();
   }
+}
+
+// 每日任务阻塞通知节流：同一阻塞状态期间最多每 5 分钟提醒一次
+let dailyTaskBlockNotifiedAt = 0;
+function notifyDailyTaskBlocking(progress) {
+  const now = Date.now();
+  if (now - dailyTaskBlockNotifiedAt < 5 * 60 * 1000) return;
+  dailyTaskBlockNotifiedAt = now;
+  const need = Math.ceil(progress.total * progress.threshold);
+  if (overlayWin && !overlayWin.isDestroyed()) {
+    overlayWin.webContents.send('daily-task-blocking', { completed: progress.completed, total: progress.total, need });
+  }
+  logToFile('INFO', '锁屏时段已结束，每日任务完成率不足，保持锁定', progress);
 }
 
 // ========== IPC ==========
@@ -2894,8 +3059,9 @@ ipcMain.on('extend-lock', (event, minutes) => {
 });
 
 // ===== 倒计时 IPC =====
-ipcMain.on('set-timer', (event, seconds, label) => {
-  const success = startTimer(seconds, label);
+// 第三个可选参数 taskId：若由「延长 5 分钟」按钮等场景传入，新倒计时也会保留任务关联（结束时 timer-done 仍带 taskId）
+ipcMain.on('set-timer', (event, seconds, label, taskId) => {
+  const success = startTimer(seconds, label, taskId || null);
   if (!success) {
     dialog.showMessageBox({
       type: 'warning',
@@ -3007,6 +3173,28 @@ ipcMain.handle('parse-file', async (event, filePath) => {
   }
 });
 
+// 读取图片为 data URL（base64 内联）：DeepSeek Vision 接受 data:image/...;base64,... 形式
+// 文档说明单张图片最大 32 MiB，超限提前拒绝，避免 API 返回 400
+const VISION_MAX_IMAGE_BYTES = 32 * 1024 * 1024;
+const VISION_MIME_MAP = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif', '.webp': 'image/webp' };
+ipcMain.handle('read-image-data-url', async (event, filePath) => {
+  try {
+    if (!filePath || !fs.existsSync(filePath)) return { success: false, error: '文件不存在' };
+    const ext = path.extname(filePath).toLowerCase();
+    const mime = VISION_MIME_MAP[ext];
+    if (!mime) return { success: false, error: `不支持的图片格式: ${ext || '无扩展名'}（仅支持 jpg/jpeg/png/gif/webp）` };
+    const stats = fs.statSync(filePath);
+    if (stats.size > VISION_MAX_IMAGE_BYTES) {
+      return { success: false, error: `图片过大 (${(stats.size / 1024 / 1024).toFixed(1)} MB)，单张上限 32 MB` };
+    }
+    const buffer = fs.readFileSync(filePath);
+    const b64 = buffer.toString('base64');
+    return { success: true, dataUrl: `data:${mime};base64,${b64}`, mime, size: stats.size };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
 ipcMain.handle('save-file', async (event, content, defaultName) => {
   if (!overlayWin || overlayWin.isDestroyed()) return null;
   const result = await dialog.showSaveDialog(overlayWin, {
@@ -3033,18 +3221,18 @@ const FILES_DIR_NAME = 'files';
 const UPLOADED_LIST_FILE = 'uploaded-files.json';
 function loadUploadedFiles() {
   try {
-    const p = path.join(baseDir, UPLOADED_LIST_FILE);
+    const p = path.join(dataDir, UPLOADED_LIST_FILE);
     if (!fs.existsSync(p)) return new Set();
     const arr = JSON.parse(fs.readFileSync(p, 'utf8'));
     return new Set(Array.isArray(arr) ? arr.filter(n => typeof n === 'string') : []);
   } catch (e) { return new Set(); }
 }
 function saveUploadedFiles(set) {
-  try { fs.writeFileSync(path.join(baseDir, UPLOADED_LIST_FILE), JSON.stringify([...set], null, 2), 'utf-8'); } catch (e) { logToFile('WARN', '写入上传清单失败', e.message); }
+  try { fs.writeFileSync(path.join(dataDir, UPLOADED_LIST_FILE), JSON.stringify([...set], null, 2), 'utf-8'); } catch (e) { logToFile('WARN', '写入上传清单失败', e.message); }
 }
 
 function ensureFilesDir() {
-  const dir = path.join(baseDir, FILES_DIR_NAME);
+  const dir = path.join(dataDir, FILES_DIR_NAME);
   try {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   } catch (e) { logToFile('WARN', '创建 files 目录失败', e.message); }
@@ -3314,7 +3502,7 @@ ipcMain.handle('get-extension-status', async () => ({
 }));
 
 // To-Do
-const todoDir = path.join(baseDir, 'todos');
+const todoDir = path.join(dataDir, 'todos');
 ipcMain.handle('load-todos', async (event, dateStr) => {
   const filePath = path.join(todoDir, `${dateStr}.json`);
   try {
@@ -3336,7 +3524,7 @@ ipcMain.handle('pomodoro-pause', async () => { pausePomodoro(); return getPomodo
 ipcMain.handle('pomodoro-reset', async () => { resetPomodoro(); return getPomodoroStateObj(); });
 ipcMain.handle('get-quotes', async () => {
   try {
-    const file = path.join(baseDir, 'quotes.json');
+    const file = path.join(dataDir, 'quotes.json');
     if (fs.existsSync(file)) {
       const q = JSON.parse(fs.readFileSync(file, 'utf-8'));
       if (Array.isArray(q) && q.length) {
@@ -3354,7 +3542,7 @@ const SOUND_MAP = {
   white: { audio: 'bell.ogg',              cover: 'bell.webp' }
 };
 // 自定义环境音：用户通过设置面板添加的音频文件（路径引用，不复制）
-const CUSTOM_SOUNDS_FILE = path.join(baseDir, 'custom-sounds.json');
+const CUSTOM_SOUNDS_FILE = path.join(dataDir, 'custom-sounds.json');
 function loadCustomSounds() {
   try {
     if (fs.existsSync(CUSTOM_SOUNDS_FILE)) {
@@ -3375,7 +3563,7 @@ function isCustomSoundType(type) {
   return typeof type === 'string' && type.startsWith('custom_');
 }
 // 环境音背景图：type → 背景图路径（覆盖内置默认封面；key 含 custom_<id>）
-const AMBIENT_COVERS_FILE = path.join(baseDir, 'ambient-covers.json');
+const AMBIENT_COVERS_FILE = path.join(dataDir, 'ambient-covers.json');
 function loadAmbientCovers() {
   try {
     if (fs.existsSync(AMBIENT_COVERS_FILE)) {
@@ -3518,6 +3706,153 @@ ipcMain.handle('set-overlay-material', async (event, material) => {
   } catch (e) { logToFile('WARN', '切换遮罩材质失败', e.message); return false; }
 });
 ipcMain.handle('get-focus-settings', async () => ({ ...focusSettings, ...(pendingMinSettings || {}) }));
+
+// ========== 每日任务 ==========
+function getTodayStr() { return new Date().toISOString().slice(0, 10); }
+
+// 构建当前 dailyTasks 的 name→id 映射，用于完成状态回退匹配与 id 变更后迁移
+function buildDailyTaskByName() {
+  const m = new Map();
+  for (const t of dailyTasks) if (t && t.name) m.set(t.name.trim().toLowerCase(), t.id);
+  return m;
+}
+
+// 完成状态迁移：把旧版 focus-settings.json 里基于 daily_1/2/3 的完成状态，迁移到新版基于 name 哈希的稳定 id
+// 兼容两类遗留数据：1) 纯 daily_N 序号 id（v1.0.0 默认 normalize）；2) 基于 name 的哈希 id 中任务名没变的（无需动）
+function migrateDailyTaskState(state) {
+  if (!state || typeof state !== 'object') return null;
+  const curIds = new Set(dailyTasks.map(t => t.id));
+  const byName = buildDailyTaskByName(); // nameKey→currentId
+  const newState = { ...state };
+  let changed = false;
+
+  // 1) 收集所有「待迁移 key」：非当前 id 且值为布尔（完成状态）；或 daily_N 形式
+  const toDelete = [];
+  const pending = []; // [oldKey, value]
+  for (const k of Object.keys(newState)) {
+    if (curIds.has(k)) continue; // 已是当前任务 id，保留不动
+    const v = newState[k];
+    if (typeof v !== 'boolean') { toDelete.push(k); continue; } // 无效值类型：排除
+    // 若 key 本身就是 nameKey（未来格式或外部写入），直接迁移
+    if (byName.has(k)) { pending.push([k, v]); continue; }
+    // 旧版 daily_N：按 name 顺序位置找匹配（如果 dailyTasks[i-1] 存在且无其他来源完成状态时迁移）
+    const m = /^daily_(\d+)$/.exec(k);
+    if (m) {
+      const idx = Number(m[1]) - 1; // daily_1 → idx 0
+      if (idx >= 0 && idx < dailyTasks.length) {
+        pending.push([k, v, { indexHint: idx }]);
+      } else {
+        toDelete.push(k);
+      }
+      continue;
+    }
+    // 其他未知 key：删除（可能是用户彻底删除该任务后残留的旧哈希 id）
+    toDelete.push(k);
+  }
+
+  // 2) 应用 pending：优先按 name 精确匹配；否则用顺序位置
+  const assigned = new Set(); // 已分配完成状态的新 id，不被重复覆盖
+  // 按 nameKey 精确的先走（无 indexHint 形式 + byName.has(k) 的这些）
+  for (const [oldKey, val, hint] of pending) {
+    if (hint && hint.indexHint !== undefined) continue; // 顺序位匹配的放最后
+    const nameKey = oldKey;
+    const newId = byName.get(nameKey);
+    if (newId && !assigned.has(newId) && !newState[newId]) {
+      newState[newId] = val;
+      assigned.add(newId);
+      toDelete.push(oldKey);
+      changed = true;
+    } else if (newId && newState[newId] !== undefined) {
+      toDelete.push(oldKey); // 已在当前 id 有状态，旧条目只是冗余
+      changed = true;
+    }
+  }
+  // 顺序位匹配（旧 daily_N → 当前 dailyTasks[N-1].id）
+  for (const [oldKey, val, hint] of pending) {
+    if (!hint || hint.indexHint === undefined) continue;
+    const t = dailyTasks[hint.indexHint];
+    if (!t) { toDelete.push(oldKey); changed = true; continue; }
+    if (assigned.has(t.id) || newState[t.id]) {
+      toDelete.push(oldKey);
+      changed = true;
+      continue;
+    }
+    newState[t.id] = val;
+    assigned.add(t.id);
+    toDelete.push(oldKey);
+    changed = true;
+  }
+
+  // 3) 清理
+  for (const k of toDelete) {
+    if (k in newState) { delete newState[k]; changed = true; }
+  }
+  return changed ? newState : null;
+}
+
+// 取当前每日任务完成状态（按今日日期重置 + 变更时做 id 迁移 + 持久化）
+function getDailyTaskState() {
+  const today = getTodayStr();
+  let needSave = false;
+  if (!focusSettings.dailyTaskDate || focusSettings.dailyTaskDate !== today) {
+    focusSettings.dailyTaskDate = today;
+    focusSettings.dailyTaskCompleted = {};
+    needSave = true;
+  }
+  if (!focusSettings.dailyTaskCompleted || typeof focusSettings.dailyTaskCompleted !== 'object') {
+    focusSettings.dailyTaskCompleted = {};
+    needSave = true;
+  }
+  // id 变更迁移：每日第一次加载或 save-config-from-edit 重载 dailyTasks 后执行
+  const migrated = migrateDailyTaskState(focusSettings.dailyTaskCompleted);
+  if (migrated) {
+    focusSettings.dailyTaskCompleted = migrated;
+    needSave = true;
+  }
+  if (needSave) saveFocusSettingsToFile({ ...focusSettings });
+  return focusSettings.dailyTaskCompleted;
+}
+
+function getDailyTaskProgress() {
+  if (!dailyTasks.length) return { total: 0, completed: 0, ratio: 1, threshold: 0.6, met: true };
+  const state = getDailyTaskState();
+  const completed = dailyTasks.filter(t => !!state[t.id]).length;
+  const ratio = completed / dailyTasks.length;
+  return { total: dailyTasks.length, completed, ratio, threshold: 0.6, met: ratio >= 0.6 };
+}
+
+// 返回 { id, name, minutes, completed } 并合并完成率，供 UI 展示
+function dailyTasksSnapshot() {
+  const state = getDailyTaskState();
+  return { tasks: dailyTasks.map(t => ({ ...t, completed: !!state[t.id] })), ...getDailyTaskProgress() };
+}
+
+ipcMain.handle('get-daily-tasks', async () => dailyTasksSnapshot());
+
+ipcMain.handle('toggle-daily-task', async (event, taskId) => {
+  const state = getDailyTaskState();
+  state[taskId] = !state[taskId];
+  saveFocusSettingsToFile({ ...focusSettings });
+  const snap = dailyTasksSnapshot();
+  if (overlayWin && !overlayWin.isDestroyed()) {
+    overlayWin.webContents.send('daily-task-updated', snap);
+  }
+  return { success: true, total: snap.total, completed: snap.completed, ratio: snap.ratio, threshold: snap.threshold, met: snap.met };
+});
+
+// 明确设置某每日任务完成状态（completed=true 表示标记完成，false 表示取消完成）
+// 与 toggle-daily-task 区别：toggle 是切换，重复调用会反复反转；set 是幂等设值，用于「倒计时结束点确定 → 标记完成」等需要明确语义的场景
+ipcMain.handle('set-daily-task', async (event, taskId, completed) => {
+  if (!taskId) return { success: false, error: '缺少 taskId' };
+  const state = getDailyTaskState();
+  state[taskId] = !!completed;
+  saveFocusSettingsToFile({ ...focusSettings });
+  const snap = dailyTasksSnapshot();
+  if (overlayWin && !overlayWin.isDestroyed()) {
+    overlayWin.webContents.send('daily-task-updated', snap);
+  }
+  return { success: true, total: snap.total, completed: snap.completed, ratio: snap.ratio, threshold: snap.threshold, met: snap.met };
+});
 ipcMain.handle('get-focus-report', async (event, days) => getFocusReportData(Math.max(7, Math.min(31, Number(days) || 14))));
 ipcMain.handle('get-site-stats', async () => {
   // 若未加载（如非锁屏期间查询），确保 siteUsage 已初始化
@@ -3534,7 +3869,9 @@ ipcMain.handle('save-focus-settings', async (event, settings) => {
       siteLockMinMinutes: Math.max(0, Math.min(480, Number(settings.siteLockMinMinutes) || 0)),
       timerSyncPomodoro: settings.timerSyncPomodoro !== false,
       instantMode: !!settings.instantMode && instantModeEnabled,
-      shortcuts: focusSettings.shortcuts || { ...DEFAULT_SHORTCUTS } // 保留快捷键配置不被覆盖
+      shortcuts: focusSettings.shortcuts || { ...DEFAULT_SHORTCUTS }, // 保留快捷键配置不被覆盖
+      dailyTaskDate: focusSettings.dailyTaskDate || '',
+      dailyTaskCompleted: (focusSettings.dailyTaskCompleted && typeof focusSettings.dailyTaskCompleted === 'object') ? focusSettings.dailyTaskCompleted : {}
     };
     // 两个最短时长选项：保存后不立即生效，等下次出现遮罩时才应用；其余立即生效
     pendingMinSettings = {
@@ -3597,7 +3934,8 @@ ipcMain.handle('get-config-for-edit', async () => {
         zoom: typeof s.zoom === 'number' ? s.zoom : 1,
         aliases: Array.isArray(s.aliases) ? s.aliases : [],
         pinned: !!s.pinned
-      }))
+      })),
+      dailyTasks: normalizeDailyTasks(cfg.dailyTasks).map(t => ({ name: t.name, minutes: t.minutes }))
     };
   } catch (e) {
     logToFile('ERROR', '读取配置失败', e.message);
@@ -3653,8 +3991,27 @@ ipcMain.handle('save-config-from-edit', async (event, data) => {
         });
       });
     }
+    // 每日任务：每行「任务名 | 预计分钟数」，分钟数可选（默认 0），空行忽略；| 之后仅接受纯数字（分钟）或为空
+    const dailyTasksParsed = [];
+    const dailyText = (data && data.dailyTasks ? String(data.dailyTasks) : '').trim();
+    if (dailyText) {
+      dailyText.split(/\r?\n/).forEach((line, i) => {
+        const row = line.trim();
+        if (!row) return;
+        const parts = row.split('|').map(p => p.trim());
+        const name = parts[0];
+        if (!name) { errors.push(`每日任务第 ${i + 1} 行缺少任务名`); return; }
+        let minutes = 0;
+        if (parts.length >= 2 && parts[1] !== '') {
+          const n = parseInt(parts[1], 10);
+          if (isNaN(n) || n < 0 || n > 1440) { errors.push(`每日任务「${name}」的预计分钟数无效：${parts[1]}（需为 0~1440 整数或留空）`); return; }
+          minutes = n;
+        }
+        dailyTasksParsed.push({ name, minutes });
+      });
+    }
     if (errors.length > 0) return { success: false, errors };
-    // ---- 合并现有配置，写回 config.js ----
+    // ---- 合并现有配置，写回 dataDir/config.json（下次启动生效） ----
     const raw = loadRawConfig(app);
     const merged = { ...(raw.config || {}) };
     merged.autoLaunch = autoLaunch;
@@ -3663,14 +4020,17 @@ ipcMain.handle('save-config-from-edit', async (event, data) => {
     else delete merged.deepseekApiKey;
     merged.timeRanges = timeRanges;
     merged.sites = sites;
+    // 每日任务：写 normalize 后的稳定 id（name 哈希），空数组表示停用每日任务
+    merged.dailyTasks = normalizeDailyTasks(dailyTasksParsed).map(t => ({ id: t.id, name: t.name, minutes: t.minutes }));
     delete merged.pinWindows; // 精简：移除窗口置顶配置残留
     guardEnabled = merged.guardEnabled !== false; // 看门狗开关即时生效，无需重启
-    logToFile('INFO', '看门狗开关已更新', { guardEnabled });
-    const jsContent = '// Focus Locker 配置（由遮罩内设置保存生成，下次启动生效）\nmodule.exports = ' + JSON.stringify(merged, null, 2) + ';\n';
-    const configJsPath = path.join(raw.baseDir, 'config.js');
-    fs.writeFileSync(configJsPath, jsContent, 'utf-8');
-    logToFile('INFO', '配置已通过遮罩内设置保存', { configJsPath });
-    return { success: true, message: '配置已保存，下次启动生效', path: configJsPath };
+    const configJsonPath = path.join(raw.dataDir, 'config.json');
+    fs.writeFileSync(configJsonPath, JSON.stringify(merged, null, 2), 'utf-8');
+    logToFile('INFO', '配置已通过遮罩内设置保存（下次启动生效）', {
+      configJsonPath,
+      dailyTaskCount: merged.dailyTasks.length
+    });
+    return { success: true, message: '配置已保存，下次启动生效', path: configJsonPath };
   } catch (e) {
     logToFile('ERROR', '保存配置失败', e.message);
     return { success: false, errors: [e.message] };
@@ -3712,6 +4072,23 @@ app.whenReady().then(async () => {
   loadConfig();
   clearTimerResultFile(); // 次日启动时清除上次锁屏落盘的计时结果
   loadFocusSettings();
+  // 锁屏会话保护：若上次锁屏时保存了会话时段，且当前仍在该时段内，
+  // 则使用会话时段覆盖 config.js 的 timeRanges，防止用户改配置后重启绕过锁屏
+  if (Array.isArray(focusSettings.lockSessionRanges) && focusSettings.lockSessionRanges.length > 0) {
+    const now = new Date();
+    const curMin = now.getHours() * 60 + now.getMinutes();
+    const inSession = focusSettings.lockSessionRanges.some(r => curMin >= r.startMin && curMin < r.endMin);
+    if (inSession) {
+      timeRanges = focusSettings.lockSessionRanges.map(r => ({ start: r.start, end: r.end, startMin: r.startMin, endMin: r.endMin }));
+      logToFile('WARN', '检测到活跃锁屏会话时段，覆盖 config.js 的 timeRanges（防止配置篡改绕过锁屏）',
+        { sessionRanges: timeRanges.map(r => `${r.start}-${r.end}`) });
+    } else {
+      // 会话时段已结束：清除残留，让 config.js 的新时段生效
+      delete focusSettings.lockSessionRanges;
+      saveFocusSettingsToFile({ ...focusSettings });
+      logToFile('INFO', '锁屏会话时段已过期，清除并使用 config.js 的新时段');
+    }
+  }
   initFocusStats();
   browserViewSession = session.fromPartition(BROWSER_VIEW_PARTITION);
   // 登录/登出等 cookie 变化后立即落盘，防止异常退出丢登录态
@@ -3735,7 +4112,8 @@ app.whenReady().then(async () => {
       try {
         if (fs.existsSync(WATCHDOG_RESTART_FLAG)) {
           emergencyCooldownUntil = Date.now() + 20 * 60 * 1000;
-          logToFile('WARN', '检测到看门狗重启标记，进入 20 分钟紧急退出冷却');
+          cooldownPauseTime = Date.now(); // 遮罩创建前暂停冷却，创建后恢复
+          logToFile('WARN', '检测到看门狗重启标记，进入 20 分钟紧急退出冷却（遮罩创建前暂停）');
         }
         fs.rmSync(WATCHDOG_RESTART_FLAG, { force: true });
       } catch (e) {}
@@ -3757,6 +4135,8 @@ app.whenReady().then(async () => {
     }, 500);
     checkTimer = setInterval(checkTimeAndToggle, 30 * 1000);
   } else if (isTestMode) {
+    // 写入测试存活标记：生产实例据此跳过遮罩重建，退出时删除
+    try { fs.writeFileSync(testLockFile, String(process.pid), 'utf-8'); } catch (e) {}
     createOverlay();
   } else {
     checkTimer = setInterval(checkTimeAndToggle, 30 * 1000);
@@ -3770,6 +4150,10 @@ app.whenReady().then(async () => {
 
 app.on('window-all-closed', () => {});
 app.on('before-quit', () => {
+  // 测试模式退出：删除存活标记，生产实例下次 checkTimeAndToggle 时恢复调度
+  if (isTestMode) {
+    try { fs.rmSync(testLockFile, { force: true }); } catch (e) {}
+  }
   // 优雅退出标记：写入自身 PID，看门狗据此判断"主动退出"而不再重启
   try { fs.writeFileSync(GRACE_EXIT_FLAG, String(process.pid)); } catch (e) {}
   // 删除看门狗计划任务（task 与 proc 模式都清理，配合优雅退出标记双保险，防止优雅退出后仍被拉起）

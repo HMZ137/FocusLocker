@@ -1,5 +1,15 @@
-﻿; FocusLocker 自定义安装脚本：开始菜单文件夹内创建三模式快捷方式，桌面仅正常模式
+; FocusLocker 自定义安装脚本：开始菜单文件夹内创建三模式快捷方式，桌面仅正常模式
 ; 所有快捷方式均设置"以管理员身份运行"（RunAs 标志，由 set-runas.ps1 修改）
+
+; customInit 在安装程序初始化时执行（早于 extraFiles 文件复制）
+; 作用：覆盖安装时，extraFiles 会用新版 config.js 覆盖 $INSTDIR\config.js，用户若直接编辑过旧版 config.js，改动会丢失。
+; 此处在覆盖前把旧 config.js 备份到 userData（$APPDATA\FocusLocker），应用启动时 migrateUserData 会合并到 config.json
+!macro customInit
+  IfFileExists "$INSTDIR\config.js" 0 skipLegacyCfgBackup
+    CreateDirectory "$APPDATA\FocusLocker"
+    CopyFiles /SILENT "$INSTDIR\config.js" "$APPDATA\FocusLocker\config.legacy.js"
+  skipLegacyCfgBackup:
+!macroend
 
 !macro customInstall
   ; 开始菜单文件夹：FocusLocker

@@ -4,6 +4,10 @@
 <head>
   <meta charset="UTF-8">
   <title>Focus Locker</title>
+  <script>
+    // 首屏最早执行：应用已存主题，避免 HTML 解析期暗色再切亮色的闪烁
+    try { if (localStorage.getItem('focus-theme') === 'light') document.documentElement.setAttribute('data-theme', 'light'); } catch (e) {}
+  </script>
   <style>
     /* 不使用远程 Google Fonts：避免启动期网络请求与渲染缓存占用
        本地回退字体满足可读性，Segoe UI Variable 是 Windows 11+ 随附字体
@@ -66,6 +70,458 @@
 
       --font: 'Inter', 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
       --font-mono: 'JetBrains Mono', 'Consolas', monospace;
+    }
+
+    /* ===== 亮色主题：html[data-theme="light"] 覆盖变量 =====
+       原色系（靛/紫/青/绿/黄/红）保留——亮色下同样协调；
+       主要调整背景、surface、玻璃边框、文字、阴影、氛围光晕 */
+    html[data-theme="light"] {
+      --bg-body: #e8ecf2;
+      --bg-overlay: rgba(245, 247, 252, 0.96);
+      --bg-panel: rgba(255, 255, 255, 0.97);
+      /* surface 在浅色背景上改用黑色半透明，呈现浅灰层次 */
+      --surface-01: rgba(15, 23, 42, 0.05);
+      --surface-02: rgba(15, 23, 42, 0.08);
+      --surface-03: rgba(15, 23, 42, 0.12);
+      --surface-hover: rgba(15, 23, 42, 0.14);
+      --glass-border: rgba(15, 23, 42, 0.12);
+      --glass-border-strong: rgba(15, 23, 42, 0.20);
+
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+
+      /* glow 在亮色下降低浓度，避免过艳 */
+      --primary-glow: rgba(99, 102, 241, 0.22);
+      --secondary-glow: rgba(139, 92, 246, 0.20);
+      --accent-glow: rgba(34, 211, 238, 0.18);
+
+      /* 阴影在亮色下更淡（浅底更易显阴影，需降 alpha） */
+      --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.08);
+      --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.12);
+      --shadow-lg: 0 24px 60px rgba(15, 23, 42, 0.18);
+
+      --success-soft: rgba(16, 185, 129, 0.14);
+      --warning-soft: rgba(245, 158, 11, 0.16);
+      --danger-soft: rgba(239, 68, 68, 0.14);
+    }
+    /* 亮色下滚动条改黑色半透明 */
+    html[data-theme="light"] ::-webkit-scrollbar-track { background: var(--bg-body); }
+    html[data-theme="light"] ::-webkit-scrollbar-thumb { background: rgba(15, 23, 42, 0.18); }
+    html[data-theme="light"] ::-webkit-scrollbar-thumb:hover { background: rgba(15, 23, 42, 0.30); }
+    /* 亮色下选区文字用深色背景突出 */
+    html[data-theme="light"] ::selection { background: rgba(99, 102, 241, 0.28); color: var(--text-primary); }
+    /* 亮色下：bg-fx 氛围光晕提升到 overlay 之上（z-index:2），叠加在白底之上显现
+       类似暗色模式的层次：基底(白底) + 光晕（上层可见），而不是被白底完全遮住 */
+    html[data-theme="light"] .bg-fx {
+      z-index: 2;
+    }
+    html[data-theme="light"] .bg-fx .glow { opacity: 0.60; }
+    /* overlay 改为半透明白色作为基底（之前实心 #e8ecf2 完全遮住光晕） */
+    html[data-theme="light"] .overlay {
+      background: rgba(245, 247, 252, 0.85);
+    }
+    /* 环境音激活：ambient-active 下提高光晕强度，overlay 再透一点 */
+    html[data-theme="light"] body.ambient-active .bg-fx .glow { opacity: 0.72; }
+    html[data-theme="light"] body.ambient-active .overlay {
+      background: rgba(240, 243, 249, 0.78);
+    }
+
+    /* ===== 亮色模式针对性修复：硬编码暗色值在亮底对比度不足 =====
+       原则：只覆盖有问题的属性，不重写组件样式，避免破坏暗色模式 */
+
+    /* 1) 对话输入栏：原 rgba(0,0,0,0.35) 在亮底太暗 → 改用 surface 变量 */
+    html[data-theme="light"] .agent-input-area .input-wrapper {
+      background: var(--surface-02);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    }
+    html[data-theme="light"] .agent-input-area .input-wrapper:focus-within {
+      background: var(--surface-03);
+    }
+
+    /* 2) 网站使用统计 track：原 rgba(255,255,255,0.07) 在亮底几乎不可见 → 深灰底 */
+    html[data-theme="light"] .site-usage-track {
+      background: rgba(15, 23, 42, 0.10);
+    }
+
+    /* 3) 设置分隔线：原 rgba(255,255,255,0.04) 在亮底不可见 → 深色分隔 */
+    html[data-theme="light"] .setting-row {
+      border-bottom-color: rgba(15, 23, 42, 0.08);
+    }
+
+    /* 4) 面板切换胶囊：active 态发光在亮色下调低，tab 背景提亮 */
+    html[data-theme="light"] .agent-tab.active {
+      box-shadow: 0 2px 10px rgba(99, 102, 241, 0.25);
+    }
+    html[data-theme="light"] .agent-tab:hover {
+      background: var(--surface-hover);
+    }
+
+    /* 5) agent-panel：亮底上改用实心白色背景，彻底消除深色透出 */
+    html[data-theme="light"] .agent-panel {
+      background: #f8f9fc;
+      box-shadow: 0 -12px 40px rgba(15, 23, 42, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+      border-top-color: rgba(15, 23, 42, 0.12);
+    }
+
+    /* 6) 七段数字：亮色下完全去除发光，但加深颜色增强辨识度 */
+    html[data-theme="light"] .time-row {
+      text-shadow: none;
+      filter: none;
+      /* 原渐变 #FFFFFF→#C7D2FE→primary 在亮底过浅 → 改为深蓝渐变 */
+      background: linear-gradient(180deg, #4338ca 0%, #4f46e5 45%, #6366f1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      /* 轻微底部阴影让数字"浮起"但不发光 */
+      filter: drop-shadow(0 2px 4px rgba(99, 102, 241, 0.18));
+    }
+    html[data-theme="light"] .date-row {
+      filter: none;
+      /* 日期行也加深渐变 */
+      background: linear-gradient(120deg, #6366f1 0%, #8b5cf6 55%, #0ea5e9 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
+    }
+
+    /* 7) config-card：实心白底深字，彻底消除深色透底 */
+    html[data-theme="light"] .config-card {
+      background: #ffffff;
+      border: 1px solid rgba(15, 23, 42, 0.14);
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08), 0 1px 3px rgba(15, 23, 42, 0.06);
+    }
+    html[data-theme="light"] .config-card-title {
+      border-bottom-color: rgba(15, 23, 42, 0.12);
+    }
+    html[data-theme="light"] .config-card .setting-row {
+      border-bottom-color: rgba(15, 23, 42, 0.08);
+    }
+    html[data-theme="light"] .config-card .setting-row > div:first-child,
+    html[data-theme="light"] .config-card .setting-row > label {
+      color: #1e293b;
+      font-weight: 500;
+    }
+    html[data-theme="light"] .config-card .setting-row small,
+    html[data-theme="light"] .config-card .setting-row .hint {
+      color: #64748b;
+    }
+    html[data-theme="light"] .config-card .setting-row input[type="text"],
+    html[data-theme="light"] .config-card .setting-row input[type="password"],
+    html[data-theme="light"] .config-card .setting-row textarea {
+      background: #f1f5f9;
+      color: #0f172a;
+      border: 1px solid rgba(15, 23, 42, 0.16);
+    }
+    html[data-theme="light"] .config-card .setting-row input[type="text"]:focus,
+    html[data-theme="light"] .config-card .setting-row textarea:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+    }
+    html[data-theme="light"] .config-card .setting-row input::placeholder,
+    html[data-theme="light"] .config-card .setting-row textarea::placeholder {
+      color: #94a3b8;
+    }
+
+    /* 8) 报告卡片小时柱图：亮底下渐变对比度略降但仍需清晰 → 保持原渐变但微调 */
+    html[data-theme="light"] .report-hour-bar {
+      background: linear-gradient(180deg, rgba(99, 102, 241, 0.75), rgba(99, 102, 241, 0.30));
+    }
+
+    /* 9) 网站面板/设置面板顶栏：确保 surface 背景在亮色下有层次 */
+    html[data-theme="light"] .panel-header h3 {
+      color: var(--text-primary);
+    }
+
+    /* 10) toast 通知容器：提高不透明度 */
+    html[data-theme="light"] #topNoticeContainer > div,
+    html[data-theme="light"] #timerNotification,
+    html[data-theme="light"] #closeBlockedModal,
+    html[data-theme="light"] #cooldownNotice {
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid rgba(15, 23, 42, 0.12);
+      box-shadow: 0 8px 32px rgba(15, 23, 42, 0.12);
+    }
+
+    /* 11) 下载/上传按钮等通用操作按钮：确保背景在亮底有对比度 */
+    html[data-theme="light"] .action-btn-small,
+    html[data-theme="light"] .action-btn {
+      background: var(--surface-02);
+      color: var(--text-primary);
+    }
+
+    /* 12) 文件库 item 卡：亮底下 surface 层次感 */
+    html[data-theme="light"] .fileview-item {
+      background: var(--surface-01);
+      border-color: rgba(15, 23, 42, 0.08);
+    }
+    html[data-theme="light"] .fileview-item:hover {
+      background: var(--surface-hover);
+      border-color: rgba(15, 23, 42, 0.14);
+    }
+
+    /* 13) 紧急退出/倒计时通知弹窗：亮底下文字颜色修正 */
+    html[data-theme="light"] .modal-content,
+    html[data-theme="light"] .timer-notif-content {
+      color: var(--text-primary);
+    }
+
+    /* 14) 每日任务面板：亮底下滚动条/列表背景 */
+    html[data-theme="light"] .daily-task-list::-webkit-scrollbar-thumb {
+      background: rgba(15, 23, 42, 0.18);
+    }
+    html[data-theme="light"] .daily-tasks-section {
+      background: #f1f5f9;
+      border-color: rgba(99, 102, 241, 0.20);
+    }
+    html[data-theme="light"] .daily-progress-text {
+      color: #64748b;
+    }
+    html[data-theme="light"] .daily-progress-bar {
+      background: rgba(15, 23, 42, 0.08);
+    }
+    html[data-theme="light"] .daily-task-item {
+      color: #334155;
+    }
+    html[data-theme="light"] .daily-task-item:hover {
+      background: rgba(15, 23, 42, 0.06);
+    }
+    html[data-theme="light"] .daily-task-list {
+      scrollbar-color: rgba(15, 23, 42, 0.20) transparent;
+    }
+    html[data-theme="light"] .daily-task-item input[type="checkbox"] {
+      border-color: rgba(15, 23, 42, 0.22);
+      background: #ffffff;
+    }
+    html[data-theme="light"] .daily-task-item input[type="checkbox"]:hover {
+      border-color: rgba(99, 102, 241, 0.40);
+    }
+    html[data-theme="light"] .setting-row input[type="checkbox"] {
+      filter: none;
+    }
+    html[data-theme="light"] .test-notice {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.22), rgba(99, 102, 241, 0.08));
+      border-color: rgba(99, 102, 241, 0.40);
+      color: #4f46e5;
+    }
+
+    /* 15) 文件附加栏/已附加标签：亮底下颜色适配 */
+    html[data-theme="light"] .attached-tag {
+      background: rgba(16, 185, 129, 0.12);
+      border-color: rgba(16, 185, 129, 0.25);
+      color: #059669;
+    }
+
+    /* 16) 对话消息气泡：提高不透明度 */
+    html[data-theme="light"] .agent-message.user .message-content {
+      background: var(--surface-02);
+      color: var(--text-primary);
+    }
+    html[data-theme="light"] .agent-message.user {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.18), rgba(99, 102, 241, 0.08));
+      border-color: rgba(99, 102, 241, 0.22);
+    }
+    html[data-theme="light"] .agent-message.assistant {
+      background: rgba(255, 255, 255, 0.88);
+      color: var(--text-primary);
+    }
+
+    /* 17) 输入图标按钮：亮底下 hover 态 */
+    html[data-theme="light"] .input-icon-btn {
+      color: var(--text-secondary);
+    }
+    html[data-theme="light"] .input-icon-btn:hover {
+      color: var(--text-primary);
+      background: var(--surface-hover);
+    }
+
+    /* 18) 消息内代码块：原 rgba(0,0,0,0.35) 在亮底太暗 → 改为浅灰 */
+    html[data-theme="light"] .message-content pre {
+      background: rgba(15, 23, 42, 0.06);
+      border-color: rgba(15, 23, 42, 0.10);
+    }
+
+    /* 19) 消息内行内代码：亮底下高亮背景 */
+    html[data-theme="light"] .message-content :not(pre) > code {
+      background: rgba(99, 102, 241, 0.12);
+      color: #4338ca;
+    }
+
+    /* 20) 报告/统计卡片顶栏文字：确保次级文字在亮底可读 */
+    html[data-theme="light"] .report-title {
+      color: var(--text-secondary);
+    }
+    html[data-theme="light"] .report-sub {
+      color: var(--text-muted);
+    }
+    html[data-theme="light"] .site-usage-name {
+      color: var(--text-secondary);
+    }
+    html[data-theme="light"] .site-usage-time {
+      color: var(--text-muted);
+    }
+    html[data-theme="light"] .report-hour-label {
+      color: var(--text-muted);
+    }
+
+    /* 21) 文件库工具栏按钮/下载按钮：亮底下背景适配 */
+    html[data-theme="light"] .fileview-toolbar button,
+    html[data-theme="light"] .fileview-toolbar .action-btn-small {
+      background: var(--surface-02);
+      color: var(--text-primary);
+      border-color: rgba(15, 23, 42, 0.10);
+    }
+    html[data-theme="light"] .fileview-toolbar button:hover {
+      background: var(--surface-03);
+    }
+
+    /* 23) 顶部快捷按钮(置顶/退出等)：提高不透明度 */
+    html[data-theme="light"] .top-btn {
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--text-primary);
+      border: 1px solid rgba(15, 23, 42, 0.14);
+    }
+    html[data-theme="light"] .top-btn:hover {
+      background: rgba(255, 255, 255, 1);
+    }
+
+    /* 操作按钮(专注助手/置顶/退出等)：提高不透明度 */
+    html[data-theme="light"] .action-btn-wrapper .action-btn,
+    html[data-theme="light"] .action-btn-wrapper button,
+    html[data-theme="light"] .action-btn-small {
+      background: rgba(255, 255, 255, 0.90);
+      color: var(--text-primary);
+      border: 1px solid rgba(15, 23, 42, 0.14);
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+    }
+    html[data-theme="light"] .action-btn-wrapper .action-btn:hover,
+    html[data-theme="light"] .action-btn-small:hover {
+      background: rgba(255, 255, 255, 1);
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.10);
+    }
+
+    /* 24) 面板内网站视图容器：亮底下背景 */
+    html[data-theme="light"] .site-view-wrap,
+    html[data-theme="light"] #siteViewContainer {
+      background: rgba(255, 255, 255, 0.6);
+    }
+
+    /* 25) 网站面板 stage（无网站时的占位界面）：亮底下背景改浅 */
+    html[data-theme="light"] .site-stage {
+      background:
+        radial-gradient(640px 400px at 50% 42%, rgba(99, 102, 241, 0.08), transparent 70%),
+        rgba(255, 255, 255, 0.65);
+      border-color: rgba(15, 23, 42, 0.14);
+    }
+    html[data-theme="light"] .site-stage .icon {
+      color: var(--primary);
+      opacity: 0.7;
+    }
+
+    /* 26) 面板 header（网站面板/专注面板的顶栏）：提高不透明度 */
+    html[data-theme="light"] body.site-view .agent-header,
+    html[data-theme="light"] .agent-header {
+      background: rgba(255, 255, 255, 0.88);
+      border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+    }
+    html[data-theme="light"] .agent-header-actions button {
+      background: #eef2f7;
+      border-color: rgba(15, 23, 42, 0.12);
+      color: #475569;
+    }
+    html[data-theme="light"] .agent-header-actions button:hover {
+      background: rgba(15, 23, 42, 0.10);
+      color: #0f172a;
+      border-color: rgba(15, 23, 42, 0.18);
+    }
+
+    /* 27) 专注面板的统计/报告卡片：提高不透明度 */
+    html[data-theme="light"] .report-card,
+    html[data-theme="light"] .site-usage-card {
+      background: rgba(255, 255, 255, 0.90);
+      border-color: rgba(15, 23, 42, 0.10);
+    }
+
+    /* 28) 面板 tab 容器：亮底下背景 */
+    html[data-theme="light"] .agent-tabs {
+      background: #eef2f7;
+      border-color: rgba(15, 23, 42, 0.12);
+    }
+    /* 标签栏：提高对比度——active 用实心深紫，inactive 用深色文字 */
+    html[data-theme="light"] .agent-tab {
+      color: #475569;
+    }
+    html[data-theme="light"] .agent-tab:hover {
+      color: #0f172a;
+      background: rgba(15, 23, 42, 0.10);
+    }
+    html[data-theme="light"] .agent-tab.active {
+      color: #ffffff;
+      background: linear-gradient(135deg, #4f46e5, #6366f1);
+      border-color: rgba(79, 70, 229, 0.6);
+      box-shadow: 0 4px 14px rgba(79, 70, 229, 0.32);
+    }
+
+    /* 29) 专注番茄钟/计时器显示：亮底下颜色 */
+    html[data-theme="light"] .timer-display,
+    html[data-theme="light"] .pomodoro-display {
+      color: var(--text-primary);
+    }
+
+    /* 30) 环境音/背景图选择按钮：亮底下背景 */
+    html[data-theme="light"] .sound-opt {
+      background: rgba(255, 255, 255, 0.55);
+      color: var(--text-secondary);
+      border-color: rgba(15, 23, 42, 0.10);
+    }
+    html[data-theme="light"] .sound-opt:hover {
+      background: var(--surface-hover);
+      color: var(--text-primary);
+    }
+    html[data-theme="light"] .sound-opt.active {
+      background: rgba(99, 102, 241, 0.14);
+      border-color: rgba(99, 102, 241, 0.30);
+      color: var(--primary);
+    }
+
+    /* 31) body.site-view 的 agent-panel 渐变背景：提高不透明度 */
+    html[data-theme="light"] body.site-view .agent-panel {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.92) 32%, rgba(255, 255, 255, 0.85) 68%, rgba(255, 255, 255, 0.80));
+      box-shadow: 0 -12px 40px rgba(15, 23, 42, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    }
+
+    /* 32) body.site-view 的 site-stage 暗色背景 → 提高不透明度（L333 已有覆盖，此处删除重复） */
+
+    /* 34) 对话消息中文件附件上下文 pre 块的适配 */
+    html[data-theme="light"] .message-content .file-context {
+      background: rgba(15, 23, 42, 0.05);
+      border-color: rgba(15, 23, 42, 0.08);
+      color: var(--text-secondary);
+    }
+
+    /* 35) 紧急退出弹窗 / 冷却通知：提高不透明度 */
+    html[data-theme="light"] .emergency-modal,
+    html[data-theme="light"] .cooldown-modal {
+      background: rgba(255, 255, 255, 0.96);
+      border-color: rgba(15, 23, 42, 0.14);
+    }
+    html[data-theme="light"] .emergency-modal .modal-title,
+    html[data-theme="light"] .cooldown-modal .modal-title {
+      color: var(--text-primary);
+    }
+    html[data-theme="light"] .emergency-modal .modal-body,
+    html[data-theme="light"] .cooldown-modal .modal-body {
+      color: var(--text-secondary);
+    }
+
+    /* 主题切换过渡动画：切换瞬间给 body 加 .theme-transitioning，
+       该 class 下所有元素过渡背景/边框/颜色/阴影 0.3s，过渡完移除，不影响日常 hover */
+    body.theme-transitioning,
+    body.theme-transitioning * {
+      transition: background-color 0.3s ease, border-color 0.3s ease,
+                  color 0.3s ease, box-shadow 0.3s ease,
+                  fill 0.3s ease, stroke 0.3s ease !important;
     }
 
     * {
@@ -140,32 +596,6 @@
       background: radial-gradient(circle, rgba(139, 92, 246, 0.42), transparent 65%); }
     .bg-fx .glow-c { width: 480px; height: 480px; bottom: -180px; left: 28%;
       background: radial-gradient(circle, rgba(34, 211, 238, 0.22), transparent 65%); }
-    .bg-fx .grid-overlay {
-      position: absolute;
-      inset: 0;
-      background-image:
-        linear-gradient(rgba(255, 255, 255, 0.028) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.028) 1px, transparent 1px);
-      background-size: 56px 56px;
-      mask-image: radial-gradient(ellipse 90% 70% at 50% 20%, #000 25%, transparent 82%);
-      -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 20%, #000 25%, transparent 82%);
-      pointer-events: none;
-    }
-    .bg-fx .stars { position: absolute; inset: 0; pointer-events: none; }
-    .bg-fx .star {
-      position: absolute;
-      display: block;
-      border-radius: 50%;
-      background: #fff;
-      opacity: 0;
-      box-shadow: 0 0 4px rgba(255,255,255,0.8);
-      animation: twinkle 3.6s ease-in-out infinite;
-    }
-    @keyframes twinkle {
-      0%, 100% { opacity: 0.08; transform: scale(0.8); }
-      50%      { opacity: 0.75; transform: scale(1.15); }
-    }
-
     /* 渐变文字（官网同款：靛蓝 → 紫 → 青） */
     .grad-text {
       background: linear-gradient(120deg, var(--primary-bright) 0%, var(--secondary) 55%, var(--accent) 100%);
@@ -950,6 +1380,180 @@
       color: var(--text-muted);
     }
 
+    /* 每日任务面板 */
+    .daily-tasks-section {
+      flex-shrink: 0;
+      margin-bottom: 2vh;
+      padding: 1.4vh 1.2vw;
+      background: linear-gradient(135deg, rgba(124,140,250,0.10), rgba(124,140,250,0.03));
+      border: 1px solid rgba(124,140,250,0.22);
+      border-radius: var(--radius-md);
+    }
+    .daily-tasks-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1vh;
+    }
+    .daily-tasks-title {
+      font-size: 1.2vw;
+      font-weight: 600;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 0.5vw;
+    }
+    .daily-progress-text {
+      font-size: 1vw;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .daily-progress-text.met {
+      color: #6ee7a3;
+    }
+    .daily-progress-bar {
+      height: 0.7vh;
+      min-height: 6px;
+      background: var(--surface-01);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 1.2vh;
+    }
+    .daily-progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--primary-bright), var(--primary-deep));
+      border-radius: 999px;
+      transition: width 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .daily-progress-fill.met {
+      background: linear-gradient(90deg, #6ee7a3, #3fb27f);
+    }
+    .daily-task-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3vh;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.18) transparent;
+    }
+    .daily-task-list::-webkit-scrollbar { width: 5px; }
+    .daily-task-list::-webkit-scrollbar-track { background: transparent; }
+    .daily-task-list::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.18);
+      border-radius: 999px;
+    }
+    .daily-task-list::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.32); }
+    .daily-task-item {
+      display: flex;
+      align-items: center;
+      gap: 0.8vw;
+      padding: 0.7vh 0.6vw;
+      border-radius: var(--radius-sm);
+      transition: var(--transition);
+      cursor: pointer;
+    }
+    .daily-task-item:hover {
+      background: var(--surface-01);
+    }
+    .daily-task-item input[type="checkbox"] {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 1.4vw;
+      height: 1.4vw;
+      min-width: 16px;
+      min-height: 16px;
+      border: 1.5px solid rgba(255, 255, 255, 0.18);
+      border-radius: 6px;
+      background: var(--surface-01);
+      cursor: pointer;
+      flex-shrink: 0;
+      display: grid;
+      place-content: center;
+      transition: background 0.2s var(--ease-out), border-color 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
+    }
+    .daily-task-item input[type="checkbox"]::before {
+      content: '';
+      width: 0.4vw;
+      height: 0.7vw;
+      min-width: 5px;
+      min-height: 9px;
+      border: solid #fff;
+      border-width: 0 2.5px 2.5px 0;
+      transform: rotate(45deg) scale(0);
+      opacity: 0;
+      transition: transform 0.18s var(--ease-out), opacity 0.15s var(--ease-out);
+      margin-top: -2px;
+    }
+    .daily-task-item input[type="checkbox"]:checked {
+      background: linear-gradient(135deg, var(--primary-bright), var(--primary-deep));
+      border-color: transparent;
+      box-shadow: 0 2px 10px var(--primary-glow);
+    }
+    .daily-task-item input[type="checkbox"]:checked::before {
+      transform: rotate(45deg) scale(1);
+      opacity: 1;
+    }
+    .daily-task-name {
+      flex: 1;
+      font-size: 1.25vw;
+      color: var(--text-primary);
+      transition: var(--transition);
+    }
+    .daily-task-item.completed .daily-task-name {
+      text-decoration: line-through;
+      color: var(--text-muted);
+    }
+    .daily-task-mins {
+      font-size: 0.95vw;
+      color: var(--text-muted);
+      flex-shrink: 0;
+      padding: 0.2vh 0.6vw;
+      background: var(--surface-02);
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .daily-task-start-btn {
+      flex-shrink: 0;
+      width: 1.8vw;
+      height: 1.8vw;
+      min-width: 22px;
+      min-height: 22px;
+      display: grid;
+      place-content: center;
+      padding: 0;
+      border: 1px solid rgba(124,140,250,0.4);
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(124,140,250,0.18), rgba(124,140,250,0.06));
+      color: #9AA7FF;
+      font-size: 0.8vw;
+      cursor: pointer;
+      transition: var(--transition);
+      line-height: 1;
+    }
+    .daily-task-start-btn:hover {
+      background: linear-gradient(135deg, var(--primary-bright), var(--primary-deep));
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 2px 12px var(--primary-glow);
+      transform: scale(1.08);
+    }
+    .daily-task-item.running {
+      background: linear-gradient(135deg, rgba(124,140,250,0.16), rgba(124,140,250,0.04));
+      border-left: 2px solid var(--primary-bright);
+    }
+    .daily-task-timer {
+      flex-shrink: 0;
+      font-size: 1vw;
+      font-weight: 600;
+      color: var(--primary-bright);
+      padding: 0.2vh 0.8vw;
+      background: rgba(124,140,250,0.14);
+      border-radius: 999px;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+
     .file-empty {
       text-align: center;
       color: var(--text-muted);
@@ -1291,6 +1895,69 @@
     .attached-tag-name:hover {
       text-decoration: underline;
       opacity: 0.85;
+    }
+
+    /* 用户消息内的附件胶囊：发送后显示附加了哪些文件，点击可预览 */
+    .msg-attachments {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4vw;
+      margin-top: 0.5vh;
+    }
+    .msg-attach-chip {
+      background: rgba(99, 102, 241, 0.14);
+      border: 1px solid rgba(99, 102, 241, 0.28);
+      color: var(--primary-bright);
+      padding: 0.25vh 0.7vw;
+      border-radius: 20px;
+      font-size: 0.9vw;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35vw;
+      cursor: pointer;
+      transition: var(--transition);
+      max-width: 22vw;
+    }
+    .msg-attach-chip > span {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .msg-attach-chip:hover {
+      background: rgba(99, 102, 241, 0.24);
+      border-color: rgba(99, 102, 241, 0.45);
+    }
+    /* 图片附件用绿色区分（呼应文件库图片类型色） */
+    .msg-attach-chip.is-image {
+      background: rgba(16, 185, 129, 0.14);
+      border-color: rgba(16, 185, 129, 0.3);
+      color: #10b981;
+    }
+    .msg-attach-chip.is-image:hover {
+      background: rgba(16, 185, 129, 0.24);
+      border-color: rgba(16, 185, 129, 0.45);
+    }
+
+    /* 文件库"附加选中"按钮在不支持格式时的警告置灰态：
+       不用 disabled（会吞点击导致无反馈），改用红橙警告色 + 半透明，
+       暗色/亮色背景下都显眼，点击仍触发 uploadSelectedFiles 的 toast 提示 */
+    button.is-blocked,
+    .is-blocked {
+      opacity: 0.6;
+      background: rgba(248, 113, 113, 0.22) !important;
+      border-color: rgba(248, 113, 113, 0.55) !important;
+      color: var(--danger) !important;
+      cursor: not-allowed;
+      filter: saturate(0.9);
+    }
+    button.is-blocked:hover {
+      background: rgba(248, 113, 113, 0.32) !important;
+      border-color: rgba(248, 113, 113, 0.7) !important;
+    }
+    button.is-blocked::after {
+      content: '⚠';
+      margin-left: 0.3vw;
+      font-size: 0.9em;
     }
 
     .agent-input-area {
@@ -2043,6 +2710,92 @@
     .setting-row textarea:focus {
       border-color: var(--primary);
       box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+
+    /* 每日任务：纵向堆叠（多行文本框 + 卡片列表） */
+    .setting-row.setting-row-col {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.6vh;
+    }
+
+    .daily-task-edit-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4vh;
+    }
+
+    .daily-task-edit-card {
+      display: grid;
+      grid-template-columns: 1fr 7.5vw auto auto;
+      align-items: center;
+      gap: 0.5vw;
+      padding: 0.55vh 0.7vw;
+      background: var(--surface-01);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-sm);
+    }
+
+    .daily-task-edit-card input[type="text"],
+    .daily-task-edit-card input[type="number"] {
+      width: 100%;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: calc(var(--radius-sm) - 2px);
+      color: var(--text-primary);
+      font-family: var(--font);
+      font-size: 1vw;
+      padding: 0.45vh 0.65vw;
+      outline: none;
+      transition: border-color 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out);
+    }
+
+    .daily-task-edit-card input[type="text"]:focus,
+    .daily-task-edit-card input[type="number"]:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px var(--primary-glow);
+    }
+
+    .daily-task-edit-card input[type="number"] {
+      text-align: center;
+    }
+
+    .cfg-daily-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.6vw;
+    }
+
+    .cfg-hint {
+      font-size: 0.85vw;
+      color: var(--text-muted);
+    }
+
+    .dt-btn {
+      padding: 0.45vh 0.55vw;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: calc(var(--radius-sm) - 2px);
+      color: var(--text-secondary);
+      font-size: 0.95vw;
+      font-family: var(--font);
+      cursor: pointer;
+      transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out), border-color 0.15s var(--ease-out);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.28em;
+      white-space: nowrap;
+    }
+
+    .dt-btn:hover {
+      background: rgba(255,255,255,0.07);
+      color: var(--text-primary);
+    }
+
+    .dt-btn.dt-del:hover {
+      border-color: rgba(239, 68, 68, 0.35);
+      background: rgba(239, 68, 68, 0.08);
+      color: #fca5a5;
     }
 
     .config-card {
@@ -2814,6 +3567,33 @@
       box-shadow: 0 6px 24px var(--primary-glow), inset 0 1px 0 rgba(255,255,255,0.25);
     }
 
+    /* 双按钮水平布局（确定 / 延长 5 分钟） */
+    .timer-notif-actions {
+      display: flex;
+      justify-content: center;
+      gap: 1vw;
+      margin-top: 1.5vh;
+    }
+
+    .timer-notif-actions button {
+      margin-top: 0;
+    }
+
+    /* 「延长 5 分钟」次按钮：描边玻璃风，区别于主按钮 */
+    #timerNotification .timer-notif-extend {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--glass-border);
+      color: var(--text-secondary);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+
+    #timerNotification .timer-notif-extend:hover {
+      background: rgba(255,255,255,0.08);
+      color: var(--text-primary);
+      border-color: var(--primary);
+      box-shadow: 0 6px 24px var(--primary-glow), inset 0 1px 0 rgba(255,255,255,0.08);
+    }
+
     /* ===== 倒计时：状态胶囊（位于 #topNoticeContainer 内，随模式定位） ===== */
     #countdownChip {
       display: none;
@@ -3100,12 +3880,11 @@
       pointer-events: auto;
       display: flex;
       justify-content: center;
-      transition: opacity 0.25s var(--ease-out), transform 0.25s var(--ease-out), visibility 0.25s var(--ease-out);
+      transition: opacity 0.15s var(--ease-out);
     }
 
     body.panel-open .dock-wrapper {
       opacity: 0;
-      transform: translateY(16px) scale(0.97);
       pointer-events: none;
       visibility: hidden;
     }
@@ -3318,6 +4097,44 @@
       color: var(--text-muted);
     }
 
+    .site-mgmt-section {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      right: 12px;
+      background: rgba(15, 15, 25, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(99, 102, 241, 0.20);
+      border-radius: 10px;
+      z-index: 5;
+    }
+    .site-mgmt-title {
+      cursor: pointer;
+      padding: 8px 14px;
+      font-size: 13px;
+      color: var(--text-muted);
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      user-select: none;
+    }
+    .site-mgmt-title::-webkit-details-marker { display: none; }
+    .site-mgmt-title::before {
+      content: '▶';
+      font-size: 10px;
+      transition: transform 0.2s;
+    }
+    .site-mgmt-section[open] .site-mgmt-title::before {
+      transform: rotate(90deg);
+    }
+    .site-mgmt-body {
+      display: flex;
+      gap: 8px;
+      padding: 4px 14px 12px;
+      flex-wrap: wrap;
+    }
+
     body.site-view .agent-panel {
       background: linear-gradient(180deg, rgba(10, 10, 15, 0.90), rgba(10, 10, 15, 0.50) 32%, rgba(10, 10, 15, 0.12) 68%, rgba(10, 10, 15, 0.04));
       backdrop-filter: blur(18px);
@@ -3409,13 +4226,11 @@
 </head>
 
 <body>
-  <!-- 官网同款背景氛围层：发光光晕 + 网格 + 星点（pointer-events none，不拦截交互） -->
+  <!-- 背景氛围层：发光光晕（pointer-events none，不拦截交互） -->
   <div class="bg-fx" aria-hidden="true">
     <div class="glow glow-a"></div>
     <div class="glow glow-b"></div>
     <div class="glow glow-c"></div>
-    <div class="grid-overlay"></div>
-    <div class="stars" id="bgStars"></div>
   </div>
 <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden">
   <defs>
@@ -3589,6 +4404,10 @@
       <line x1="12" y1="5" x2="12" y2="19"/>
       <polyline points="19 12 12 19 5 12"/>
     </symbol>
+    <symbol id="icon-arrow-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="12" y1="19" x2="12" y2="5"/>
+      <polyline points="5 12 12 5 19 12"/>
+    </symbol>
     <symbol id="icon-coffee" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M18 8h1a4 4 0 0 1 0 8h-1"/>
       <path d="M2 8h16v8a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
@@ -3628,7 +4447,10 @@
   <div id="timerNotification">
     <div class="icon"><svg class="icon" aria-hidden="true"><use href="#icon-alarm"></use></svg></div>
     <div class="label" id="timerLabel">倒计时结束</div>
-    <button onclick="closeTimerNotification()">确定</button>
+    <div class="timer-notif-actions">
+      <button class="timer-notif-confirm" onclick="onTimerNotifConfirm()">确定</button>
+      <button class="timer-notif-extend" onclick="onTimerNotifExtend()">延长 5 分钟</button>
+    </div>
   </div>
 
   <!-- 关闭被拦截提示（Alt+F4 等） -->
@@ -3652,6 +4474,14 @@
             <button class="close-panel" onclick="exportAllTodos()" title="导出待办"><svg class="icon" aria-hidden="true"><use href="#icon-export"></use></svg></button>
             <button class="close-panel" onclick="closeTodoPanel()"><svg class="icon" aria-hidden="true"><use href="#icon-close"></use></svg></button>
           </div>
+        </div>
+        <div class="daily-tasks-section" id="dailyTasksSection" style="display:none;">
+          <div class="daily-tasks-header">
+            <div class="daily-tasks-title"><svg class="icon" aria-hidden="true"><use href="#icon-todo"></use></svg> 每日任务</div>
+            <div class="daily-progress-text" id="dailyProgressText"></div>
+          </div>
+          <div class="daily-progress-bar"><div class="daily-progress-fill" id="dailyProgressFill"></div></div>
+          <div class="daily-task-list" id="dailyTaskList"></div>
         </div>
         <div class="todo-input-area">
           <input type="text" id="todoInput" placeholder="输入新任务，回车添加..." />
@@ -3722,7 +4552,7 @@
           <div class="agent-input-area">
             <div class="input-wrapper">
               <button class="input-icon-btn" title="上传文件到文件库" onclick="uploadToFiles()"><svg class="icon" aria-hidden="true"><use href="#icon-attach"></use></svg></button>
-              <textarea id="agentInput" placeholder="提问，Shift+Enter 换行" rows="1"></textarea>
+              <textarea id="agentInput" placeholder="提问，Shift+Enter 换行 · ↑↓ 查看历史 · Tab 补全命令" rows="1"></textarea>
             </div>
             <button id="agentSendBtn" onclick="sendAgentMessage()">发送</button>
           </div>
@@ -3821,9 +4651,9 @@
               <button class="action-btn-small" id="fileMoreBtn" onclick="toggleFileMoreMenu()">⋯ 更多</button>
               <div class="fileview-more-menu" id="fileViewMoreMenu" style="display:none;">
                 <button class="fileview-more-item danger" onclick="clearAllFiles()"><svg class="icon" aria-hidden="true"><use href="#icon-trash"></use></svg> 清空附加</button>
-                <button class="fileview-more-item" onclick="importUserScript()"><svg class="icon" aria-hidden="true"><use href="#icon-code"></use></svg> 导入脚本</button>
-                <button class="fileview-more-item" onclick="showExtensionStatus()"><svg class="icon" aria-hidden="true"><use href="#icon-plug"></use></svg> 扩展状态</button>
-                <button class="fileview-more-item" onclick="configureExtension()"><svg class="icon" aria-hidden="true"><use href="#icon-settings"></use></svg> 配置CRX</button>
+                <button class="fileview-more-item ext-mgmt-item" onclick="importUserScript()"><svg class="icon" aria-hidden="true"><use href="#icon-code"></use></svg> 导入脚本</button>
+                <button class="fileview-more-item ext-mgmt-item" onclick="showExtensionStatus()"><svg class="icon" aria-hidden="true"><use href="#icon-plug"></use></svg> 扩展状态</button>
+                <button class="fileview-more-item ext-mgmt-item" onclick="configureExtension()"><svg class="icon" aria-hidden="true"><use href="#icon-settings"></use></svg> 配置CRX</button>
               </div>
             </span>
           </div>
@@ -3845,6 +4675,16 @@
               <div class="layout-switch">
                 <button class="sound-opt" data-layout="modern" onclick="setLayoutStyle('modern')">现代</button>
                 <button class="sound-opt" data-layout="legacy" onclick="setLayoutStyle('legacy')">经典</button>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="setting-label">
+                <span>主题模式</span>
+                <small>暗色：护眼沉浸；亮色：清爽高亮，切换有过渡动画，记忆选择</small>
+              </div>
+              <div class="layout-switch" id="themeSwitch">
+                <button class="sound-opt" data-theme="dark" onclick="setTheme('dark')">暗色</button>
+                <button class="sound-opt" data-theme="light" onclick="setTheme('light')">亮色</button>
               </div>
             </div>
             <div class="setting-row">
@@ -3964,6 +4804,18 @@
                 </div>
                 <input type="text" id="cfgTimeRanges" placeholder="18:00-20:30,14:00-16:00" />
               </div>
+              <div class="setting-row setting-row-col">
+                <div class="setting-label">
+                  <span>每日任务</span>
+                  <small>锁屏时段自然结束时需完成 60% 方可解除（紧急退出不受此限）。留空表示使用 config.js 中配置的基线任务。下方卡片可直接点按钮增/删/改，文本与卡片实时同步。</small>
+                </div>
+                <textarea id="cfgDailyTasks" rows="4" placeholder="每行一个任务：背单词 | 30&#10;做数学题 | 45&#10;阅读 | 20&#10;格式：任务名 | 预计分钟数（分钟数可省略，默认 0）"></textarea>
+                <div class="daily-task-edit-list" id="cfgDailyTaskCards"></div>
+                <div class="cfg-daily-actions">
+                  <button class="action-btn-small" type="button" onclick="addDailyTaskCard()"><svg class="icon" aria-hidden="true"><use href="#icon-plus"></use></svg> 新增任务</button>
+                  <span class="cfg-hint">改完后请点右上「保存配置」</span>
+                </div>
+              </div>
               <div class="setting-row">
                 <div class="setting-label">
                   <span>文件查看文件夹</span>
@@ -3974,7 +4826,7 @@
               <div class="fileview-dirs" id="settingsFileViewDirs"></div>
               <div id="cfgErrors"></div>
               <div class="setting-actions">
-                <button class="action-btn-small primary" onclick="saveConfigFromUI()">保存配置（下次启动生效）</button>
+                <button class="action-btn-small primary" onclick="saveConfigFromUI()">保存配置</button>
               </div>
             </div>
           </div>
@@ -3987,6 +4839,14 @@
             <div class="site-stage-name" id="siteStageName">网站</div>
             <div class="site-stage-sub">网站将在此全屏展示，点击右上角「切换网站」可切换</div>
           </div>
+          <details class="site-mgmt-section" id="siteMgmtSection" style="display:none;">
+            <summary class="site-mgmt-title">管理与扩展</summary>
+            <div class="site-mgmt-body">
+              <button class="action-btn-small" onclick="importUserScript()"><svg class="icon" aria-hidden="true"><use href="#icon-code"></use></svg> 导入脚本</button>
+              <button class="action-btn-small" onclick="showExtensionStatus()"><svg class="icon" aria-hidden="true"><use href="#icon-plug"></use></svg> 扩展状态</button>
+              <button class="action-btn-small" onclick="configureExtension()"><svg class="icon" aria-hidden="true"><use href="#icon-settings"></use></svg> 配置CRX</button>
+            </div>
+          </details>
         </div>
 
         <!-- 全局预览层（脱离页面层级，对话页/文件页均可调用） -->
@@ -4035,6 +4895,16 @@
       btns.forEach(b => b.classList.toggle('active', b.dataset.layout === layoutStyle));
       const siteTab = document.querySelector('.agent-tab[data-page="site"]');
       if (siteTab) siteTab.style.display = layoutStyle === 'legacy' ? 'none' : '';
+      // 现代模式：管理脚本/扩展事项挪到网页面板（折叠），从文件面板"更多"菜单隐藏
+      const extItems = document.querySelectorAll('.ext-mgmt-item');
+      const siteMgmt = document.getElementById('siteMgmtSection');
+      if (layoutStyle === 'modern') {
+        extItems.forEach(el => el.style.display = 'none');
+        if (siteMgmt) siteMgmt.style.display = '';
+      } else {
+        extItems.forEach(el => el.style.display = '');
+        if (siteMgmt) siteMgmt.style.display = 'none';
+      }
       if (window.utils && window.utils.setLayoutMode) window.utils.setLayoutMode(layoutStyle);
       if (layoutStyle === 'legacy') {
         // 经典模式：退出面板内网站视图，网站由主进程常驻右侧
@@ -4056,6 +4926,26 @@
       showSystemToast(layoutStyle === 'legacy'
         ? '<svg class="icon" aria-hidden="true"><use href="#icon-settings"></use></svg> 已切换到经典风格（网站常驻右侧）'
         : '<svg class="icon" aria-hidden="true"><use href="#icon-settings"></use></svg> 已切换到现代风格（网站收纳在面板）');
+    }
+
+    // ---- 主题模式（暗色/亮色）----
+    // applyTheme：读取 localStorage 应用主题并同步按钮激活态；默认暗色
+    function applyTheme() {
+      const theme = localStorage.getItem('focus-theme') === 'light' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', theme);
+      document.querySelectorAll('#themeSwitch .sound-opt').forEach(b =>
+        b.classList.toggle('active', b.dataset.theme === theme));
+    }
+    // setTheme：切换主题 + 持久化 + 过渡动画（加 theme-transitioning 类让全局元素过渡 0.3s，完成后移除，不影响日常 hover）
+    function setTheme(mode) {
+      const next = mode === 'light' ? 'light' : 'dark';
+      localStorage.setItem('focus-theme', next);
+      document.body.classList.add('theme-transitioning');
+      applyTheme();
+      setTimeout(() => document.body.classList.remove('theme-transitioning'), 320);
+      showSystemToast(next === 'light'
+        ? '<svg class="icon" aria-hidden="true"><use href="#icon-settings"></use></svg> 已切换到亮色主题'
+        : '<svg class="icon" aria-hidden="true"><use href="#icon-settings"></use></svg> 已切换到暗色主题');
     }
 
     function updateClock() {
@@ -4889,6 +5779,104 @@
       if (typeof loadTodos === 'function') loadTodos();
     });
 
+    // ---- 每日任务 ----
+    let dailyTasksData = { tasks: [], total: 0, completed: 0, ratio: 0, threshold: 0.6, met: true };
+    let dailyTaskActiveName = null; // 正在倒计时的每日任务名（与 timerInfo.label 对应）
+    async function loadDailyTasks() {
+      try {
+        dailyTasksData = await window.utils.getDailyTasks();
+        renderDailyTasks();
+      } catch (e) { console.error('加载每日任务失败', e); }
+    }
+    function renderDailyTasks() {
+      const section = document.getElementById('dailyTasksSection');
+      const list = document.getElementById('dailyTaskList');
+      const fill = document.getElementById('dailyProgressFill');
+      const text = document.getElementById('dailyProgressText');
+      if (!section || !list) return;
+      if (!dailyTasksData.tasks || !dailyTasksData.tasks.length) {
+        section.style.display = 'none';
+        return;
+      }
+      section.style.display = '';
+      list.innerHTML = '';
+      dailyTasksData.tasks.forEach((t) => {
+        const running = t.name === dailyTaskActiveName;
+        const div = document.createElement('div');
+        div.className = 'daily-task-item' + (t.completed ? ' completed' : '') + (running ? ' running' : '');
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = !!t.completed;
+        cb.addEventListener('change', async () => {
+          try {
+            const res = await window.utils.toggleDailyTask(t.id);
+            if (res) {
+              dailyTasksData = { ...dailyTasksData, ...res, tasks: dailyTasksData.tasks.map(x => x.id === t.id ? { ...x, completed: !t.completed } : x) };
+              renderDailyTasks();
+            }
+          } catch (e) { console.error('切换每日任务失败', e); renderDailyTasks(); }
+        });
+        const name = document.createElement('span');
+        name.className = 'daily-task-name';
+        name.textContent = t.name;
+        div.appendChild(cb);
+        div.appendChild(name);
+        if (running) {
+          // 倒计时进行中：显示实时剩余时间
+          const timer = document.createElement('span');
+          timer.className = 'daily-task-timer';
+          timer.id = 'dailyTaskTimerText';
+          timer.textContent = '⏱ ' + formatMMSS(timerSecondsLeft());
+          div.appendChild(timer);
+        } else {
+          const mins = document.createElement('span');
+          mins.className = 'daily-task-mins';
+          mins.textContent = (t.minutes || 0) + ' 分钟';
+          const startBtn = document.createElement('button');
+          startBtn.className = 'daily-task-start-btn';
+          startBtn.title = '开始倒计时';
+          startBtn.textContent = '▶';
+          startBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const seconds = Math.max(1, Math.round((Number(t.minutes) || 0) * 60));
+            window.utils.setTimer(seconds, t.name);
+          });
+          div.appendChild(mins);
+          div.appendChild(startBtn);
+        }
+        list.appendChild(div);
+      });
+      // 列表高度上限为 3.25 个任务栏高度，超出则滚动
+      const firstItem = list.querySelector('.daily-task-item');
+      if (firstItem) {
+        list.style.maxHeight = Math.round(firstItem.offsetHeight * 3.25) + 'px';
+      } else {
+        list.style.maxHeight = '';
+      }
+      const pct = Math.round(dailyTasksData.ratio * 100);
+      fill.style.width = pct + '%';
+      fill.classList.toggle('met', dailyTasksData.met);
+      const need = Math.ceil(dailyTasksData.total * dailyTasksData.threshold);
+      text.textContent = `${dailyTasksData.completed}/${dailyTasksData.total} · 需 ${need} 项（${Math.round(dailyTasksData.threshold * 100)}%）`;
+      text.classList.toggle('met', dailyTasksData.met);
+    }
+    // 倒计时进行中时每秒刷新每日任务的剩余时间（轻量更新，不重建列表）
+    function updateDailyTaskTimerText() {
+      const el = document.getElementById('dailyTaskTimerText');
+      if (el && timerInfo) el.textContent = '⏱ ' + formatMMSS(timerSecondsLeft());
+    }
+    window.utils.onDailyTaskUpdated((data) => {
+      if (data && data.tasks) {
+        dailyTasksData = data;
+        renderDailyTasks();
+      }
+    });
+    window.utils.onDailyTaskStarted((data) => {
+      if (data && data.name) {
+        showSystemToast(`<svg class="icon" aria-hidden="true"><use href="#icon-todo"></use></svg> 已开始任务「${data.name}」倒计时：${data.minutes} 分钟`);
+      }
+    });
+
     // ---- 励志格言 ----
     const DEFAULT_QUOTES = [
       '千里之行，始于足下。', '不积跬步，无以至千里。', '业精于勤，荒于嬉；行成于思，毁于随。',
@@ -4995,6 +5983,37 @@
       if (['js','ts','json','html','css','py','java','c','cpp','go','rs','sql','yaml','yml','xml','log','txt','csv'].includes(e)) return 'code';
       return 'text';
     }
+    // DeepSeek Vision 支持的图片格式：JPEG/PNG/GIF/WebP（SVG/BMP/ICO 不支持，API 会报错）
+    function isVisionImage(ext) {
+      const type = fileTypeOf(ext);
+      if (type !== 'img') return false;
+      const e = String(ext || '').toLowerCase();
+      return ['jpg','jpeg','png','gif','webp'].includes(e);
+    }
+    // 纯文本模型（DeepSeek）不支持解析的格式：图片、视频、音频
+    function isParsableFileType(ext) {
+      const type = fileTypeOf(ext);
+      return !['img', 'video', 'audio'].includes(type);
+    }
+    // 可附加到对话的文件：可解析为文本 OR Vision 支持的图片
+    function isAttachableFileType(ext) {
+      return isParsableFileType(ext) || isVisionImage(ext);
+    }
+    // 选中文件含不支持格式时置灰"附加选中"按钮
+    function updateAttachButtonState() {
+      const btn = document.querySelector('#fileViewList button[onclick="uploadSelectedFiles()"]') ||
+                  document.querySelector('button[onclick="uploadSelectedFiles()"]');
+      if (!btn) return;
+      const sel = (window.__fileViewSelected && window.__fileViewSelected.size) ? [...window.__fileViewSelected] : [];
+      if (!sel.length) { btn.classList.remove('is-blocked'); btn.title = ''; return; }
+      const files = (window.__fileViewFiles || []).filter(f => sel.includes(f.path));
+      // 找出不支持附加的格式：选中后按钮进入"警告置灰"状态（is-blocked）
+      // 不用 disabled——disabled 会吞掉点击导致无反馈；用 is-blocked 后点击仍触发 uploadSelectedFiles 的 toast 提示
+      const unattachable = files.filter(f => !isAttachableFileType(f.ext || (f.name || '').split('.').pop() || ''));
+      const blocked = unattachable.length > 0;
+      btn.classList.toggle('is-blocked', blocked);
+      btn.title = blocked ? `选中文件含不支持的格式（${unattachable.map(f => f.name).join('、')}），无法附加 SVG/BMP/音视频` : '';
+    }
     function formatFileSize(bytes) {
       if (bytes >= 1024 * 1024) return (bytes / 1024 / 1024).toFixed(1) + ' MB';
       if (bytes >= 1024) return (bytes / 1024).toFixed(0) + ' KB';
@@ -5081,6 +6100,7 @@
           return;
         }
         renderFileViewItems(res.files, listEl);
+        updateAttachButtonState();
       } catch (e) {
         listEl.innerHTML = `<div class="fileview-empty">加载失败：${escapeHtml(e.message)}</div>`;
       }
@@ -5162,6 +6182,7 @@
       });
       const selEl = document.getElementById('fileViewSelCount');
       if (selEl) selEl.textContent = window.__fileViewSelected.size ? `已选 ${window.__fileViewSelected.size}` : '';
+      updateAttachButtonState();
     }
 
     // 单击选中（延迟区分双击预览），双击打开预览
@@ -5183,23 +6204,33 @@
     }
 
     // 将上传的文件附加到对话（解析失败的文件提供文件名等占位信息），确保 AI 能收到文件上下文
+    // 图片文件不走文本解析：标记 isImage，发送时按 base64 内联传给 DeepSeek Vision
     async function attachFilesToChat(files) {
       if (!Array.isArray(files) || !files.length) return;
       for (const f of files) {
+        const ext = f.ext || f.name.split('.').pop().toLowerCase() || '';
+        const isImg = isVisionImage(ext);
         let content = '';
-        try {
-          const parsed = await window.utils.parseFile(f.path);
-          if (parsed && parsed.success) content = parsed.text;
-        } catch (e) {}
-        if (!content) {
-          content = `[该文件无法解析为文本，仅提供文件名信息]\n文件：${f.name}\n大小：${formatFileSize(f.size)}\n完整路径：${f.path}`;
+        let isImage = false;
+        if (isImg) {
+          isImage = true;
+          content = `[图片文件] ${f.name} · ${formatFileSize(f.size)}（将以图片形式发送给 DeepSeek Vision）`;
+        } else {
+          try {
+            const parsed = await window.utils.parseFile(f.path);
+            if (parsed && parsed.success) content = parsed.text;
+          } catch (e) {}
+          if (!content) {
+            content = `[该文件无法解析为文本，仅提供文件名信息]\n文件：${f.name}\n大小：${formatFileSize(f.size)}\n完整路径：${f.path}`;
+          }
         }
         const existing = fileStore.find(x => x.name === f.name);
         if (existing) {
           existing.content = content;
           existing.selected = true;
           existing.path = f.path;
-          existing.ext = f.ext || f.name.split('.').pop().toLowerCase() || '';
+          existing.ext = ext;
+          existing.isImage = isImage;
         } else {
           fileStore.push({
             id: nextFileId++,
@@ -5207,7 +6238,8 @@
             content,
             type: f.name.split('.').pop().toLowerCase() || '未知',
             path: f.path,
-            ext: f.ext || f.name.split('.').pop().toLowerCase() || '',
+            ext,
+            isImage,
             expanded: false,
             selected: true
           });
@@ -5222,6 +6254,12 @@
       if (!sel.length) { showSystemToast('<svg class="icon" aria-hidden="true"><use href="#icon-warning"></use></svg> 请先单击选择要上传的文件'); return; }
       const files = (window.__fileViewFiles || []).filter(f => sel.includes(f.path));
       if (!files.length) { showSystemToast('<svg class="icon" aria-hidden="true"><use href="#icon-warning"></use></svg> 没有找到选中的文件'); return; }
+      // 附加限制：拦截 SVG/BMP/音视频等不支持附加的格式（Vision 支持的 jpg/png/gif/webp 放行）
+      const unattachable = files.filter(f => !isAttachableFileType(f.ext || (f.name || '').split('.').pop() || ''));
+      if (unattachable.length) {
+        showSystemToast(`<svg class="icon" aria-hidden="true"><use href="#icon-warning"></use></svg> 选中文件含不支持的格式（${unattachable.map(f => f.name).join('、')}），无法附加 SVG/BMP/音视频`);
+        return;
+      }
       await attachFilesToChat(files);
       if (!window.__fileViewAttached) window.__fileViewAttached = new Set();
       files.forEach(f => window.__fileViewAttached.add(f.path));
@@ -5265,8 +6303,15 @@
       try {
         const res = await window.utils.pickFilesToAttach();
         if (!res || res.canceled) return;
-        const files = res.files || [];
+        let files = res.files || [];
         if (!files.length) { showSystemToast('<svg class="icon" aria-hidden="true"><use href="#icon-warning"></use></svg> 没有文件被附加'); return; }
+        // 附加限制：过滤掉 SVG/BMP/音视频等不支持附加的格式（Vision 支持的 jpg/png/gif/webp 保留）
+        const before = files.length;
+        files = files.filter(f => isAttachableFileType(f.ext || (f.name || '').split('.').pop() || ''));
+        if (files.length < before) {
+          showSystemToast(`<svg class="icon" aria-hidden="true"><use href="#icon-warning"></use></svg> 已过滤 ${before - files.length} 个不支持的格式（SVG/BMP/音视频）`);
+        }
+        if (!files.length) return;
         await attachFilesToChat(files);
         showSystemToast(`<svg class="icon" aria-hidden="true"><use href="#icon-success"></use></svg> 已附加 ${files.length} 个文件到对话`);
       } catch (e) {
@@ -5391,7 +6436,7 @@
     function mkMediaBtn(text, title) {
       const b = document.createElement('button');
       b.className = 'fv-media-btn';
-      b.textContent = text;
+      b.innerHTML = text; // text 为 SVG 字符串（iconSvg 返回值或字面量），需作为 HTML 解析才能渲染图标；textContent 会把 SVG 标签当纯文本外露
       b.title = title;
       return b;
     }
@@ -5744,6 +6789,134 @@
     }
 
     // ---- 遮罩内编辑 config.js ----
+    // 把 dailyTasks 对象数组 [{name,minutes}] 序列化为「任务名 | 分钟数」每行的文本
+    function dailyTasksToText(list) {
+      if (!Array.isArray(list)) return '';
+      return list.map(t => {
+        const name = (t && t.name ? String(t.name) : '').trim();
+        if (!name) return '';
+        const m = Number(t && t.minutes);
+        const minutes = Number.isFinite(m) && m >= 0 ? Math.round(m) : 0;
+        return minutes > 0 ? `${name} | ${minutes}` : name;
+      }).filter(x => x).join('\n');
+    }
+    // 文本 → 对象数组；空行忽略，分钟数字段缺省为 0
+    function parseDailyTasksText(txt) {
+      const out = [];
+      (txt || '').split(/\r?\n/).forEach(line => {
+        const row = line.trim();
+        if (!row) return;
+        const parts = row.split('|').map(p => p.trim());
+        const name = parts[0];
+        if (!name) return;
+        let minutes = 0;
+        if (parts.length >= 2 && parts[1] !== '') {
+          const n = parseInt(parts[1], 10);
+          if (!isNaN(n) && n >= 0 && n <= 1440) minutes = n;
+        }
+        out.push({ name, minutes });
+      });
+      return out;
+    }
+    // 渲染卡片列表到 #cfgDailyTaskCards，支持双向同步（文本框↔卡片）。isCardEdit=true 表示从卡片编辑事件触发，避免无限回写
+    let _dtSyncGuard = false;
+    function renderCfgDailyTaskCards() {
+      const listEl = document.getElementById('cfgDailyTaskCards');
+      const txtEl = document.getElementById('cfgDailyTasks');
+      if (!listEl || !txtEl) return;
+      const tasks = parseDailyTasksText(txtEl.value);
+      listEl.innerHTML = '';
+      tasks.forEach((t, i) => {
+        const card = document.createElement('div');
+        card.className = 'daily-task-edit-card';
+        card.dataset.index = String(i);
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.value = t.name;
+        nameInput.placeholder = '任务名（必填）';
+        nameInput.addEventListener('input', () => {
+          if (_dtSyncGuard) return;
+          const all = parseDailyTasksText(txtEl.value);
+          const idx = Number(card.dataset.index);
+          if (all[idx]) all[idx].name = nameInput.value;
+          _dtSyncGuard = true;
+          try { txtEl.value = dailyTasksToText(all); } finally { _dtSyncGuard = false; }
+        });
+        const minInput = document.createElement('input');
+        minInput.type = 'number';
+        minInput.min = '0'; minInput.max = '1440';
+        minInput.value = String(t.minutes || 0);
+        minInput.placeholder = '分';
+        minInput.addEventListener('input', () => {
+          if (_dtSyncGuard) return;
+          const all = parseDailyTasksText(txtEl.value);
+          const idx = Number(card.dataset.index);
+          let v = parseInt(minInput.value, 10);
+          if (isNaN(v) || v < 0) v = 0;
+          if (v > 1440) v = 1440;
+          if (all[idx]) all[idx].minutes = v;
+          _dtSyncGuard = true;
+          try { txtEl.value = dailyTasksToText(all); } finally { _dtSyncGuard = false; }
+        });
+        const upBtn = document.createElement('button');
+        upBtn.type = 'button';
+        upBtn.className = 'dt-btn';
+        upBtn.title = '上移';
+        upBtn.innerHTML = iconSvg('arrow-up');
+        upBtn.addEventListener('click', () => {
+          const all = parseDailyTasksText(txtEl.value);
+          const idx = Number(card.dataset.index);
+          if (idx <= 0 || idx >= all.length) return;
+          [all[idx - 1], all[idx]] = [all[idx], all[idx - 1]];
+          txtEl.value = dailyTasksToText(all);
+          renderCfgDailyTaskCards();
+        });
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'dt-btn dt-del';
+        delBtn.title = '删除任务';
+        delBtn.innerHTML = iconSvg('trash');
+        delBtn.addEventListener('click', () => {
+          const all = parseDailyTasksText(txtEl.value);
+          const idx = Number(card.dataset.index);
+          if (idx < 0 || idx >= all.length) return;
+          all.splice(idx, 1);
+          txtEl.value = dailyTasksToText(all);
+          renderCfgDailyTaskCards();
+        });
+        card.appendChild(nameInput);
+        card.appendChild(minInput);
+        card.appendChild(upBtn);
+        card.appendChild(delBtn);
+        listEl.appendChild(card);
+      });
+    }
+    // 文本框改动 → 重建卡片（防抖 guard）
+    function bindCfgDailyTaskSync() {
+      const txtEl = document.getElementById('cfgDailyTasks');
+      if (!txtEl || txtEl._dtBound) return;
+      txtEl._dtBound = true;
+      txtEl.addEventListener('input', () => {
+        if (_dtSyncGuard) return;
+        renderCfgDailyTaskCards();
+      });
+    }
+    // 新增任务按钮：在末尾插入空白任务
+    function addDailyTaskCard() {
+      const txtEl = document.getElementById('cfgDailyTasks');
+      if (!txtEl) return;
+      const all = parseDailyTasksText(txtEl.value);
+      all.push({ name: '新任务', minutes: 30 });
+      txtEl.value = dailyTasksToText(all);
+      renderCfgDailyTaskCards();
+      // 自动聚焦新增行的名称输入框
+      const listEl = document.getElementById('cfgDailyTaskCards');
+      if (listEl) {
+        const last = listEl.querySelector('.daily-task-edit-card:last-child input[type="text"]');
+        if (last) { last.focus(); last.select(); }
+      }
+    }
+
     async function loadConfigToUI() {
       try {
         const cfg = await window.utils.getConfigForEdit();
@@ -5753,6 +6926,13 @@
         applyInstantModeEnabled(cfg.instantModeEnabled === true);
         document.getElementById('cfgApiKey').value = cfg.deepseekApiKey || '';
         document.getElementById('cfgTimeRanges').value = (cfg.timeRanges || []).join(',');
+        // 每日任务：回填文本（空数组 → 空文本，表示停用）+ 渲染卡片
+        const txtEl = document.getElementById('cfgDailyTasks');
+        if (txtEl) {
+          txtEl.value = dailyTasksToText(Array.isArray(cfg.dailyTasks) ? cfg.dailyTasks : []);
+          bindCfgDailyTaskSync();
+          renderCfgDailyTaskCards();
+        }
       } catch (e) {console.error('读取配置文件失败', e);}
     }
 
@@ -5763,12 +6943,13 @@
         autoLaunch: document.getElementById('cfgAutoLaunch').checked,
         guardEnabled: document.getElementById('cfgGuardEnabled').checked,
         deepseekApiKey: document.getElementById('cfgApiKey').value.trim(),
-        timeRanges: document.getElementById('cfgTimeRanges').value.trim()
+        timeRanges: document.getElementById('cfgTimeRanges').value.trim(),
+        dailyTasks: (document.getElementById('cfgDailyTasks') || {}).value || ''
       };
       try {
         const res = await window.utils.saveConfigFromEdit(payload);
         if (res && res.success) {
-          showSystemToast('<svg class="icon" aria-hidden="true"><use href="#icon-success"></use></svg> 配置已保存，下次启动生效');
+          showSystemToast('<svg class="icon" aria-hidden="true"><use href="#icon-success"></use></svg> ' + (res.message || '配置已保存'));
         } else {
           errorsEl.style.display = 'block';
           errorsEl.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#icon-warning"></use></svg> 保存失败：<br>' +
@@ -5836,6 +7017,16 @@
     let fileStore = [];
     let nextFileId = 1;
     let chatHistory = [];
+    // 输入框键盘增强：发送历史（独立于 chatHistory 的纯文本栈）、浏览状态、草稿
+    window._navHistory = {list: [], _browsing: false, _index: -1, _draft: ''};
+    function pushNavHistory(text) {
+      const s = text && String(text).trim();
+      if (!s) return;
+      const h = window._navHistory;
+      if (h.list.length && h.list[h.list.length - 1] === s) return; // 相邻去重
+      h.list.push(s);
+      if (h.list.length > 50) h.list = h.list.slice(-50);
+    }
     let isProcessing = false;
     let currentMsgElem = null;
     let currentContent = '';
@@ -5844,7 +7035,7 @@
 
     function getFileIcon(name) {
       const ext = name.split('.').pop().toLowerCase();
-      const map = {pdf: '[PDF]', docx: '[DOC]', xlsx: '[XLS]', csv: '[CSV]', txt: '[TXT]', md: '[MD]', json: '[JSON]', js: '[JS]', py: '[PY]', html: '[HTML]', css: '[CSS]'};
+      const map = {pdf: '[PDF]', docx: '[DOC]', xlsx: '[XLS]', csv: '[CSV]', txt: '[TXT]', md: '[MD]', json: '[JSON]', js: '[JS]', py: '[PY]', html: '[HTML]', css: '[CSS]', jpg: '[IMG]', jpeg: '[IMG]', png: '[IMG]', gif: '[IMG]', webp: '[IMG]'};
       return map[ext] || '[FILE]';
     }
     function formatSize(chars) {
@@ -5984,7 +7175,8 @@
     }
 
     function getSelectedFilesContent() {
-      const selected = fileStore.filter(f => f.selected);
+      // 图片走 image_url content 块，不并入文本上下文
+      const selected = fileStore.filter(f => f.selected && !f.isImage);
       if (selected.length === 0) return null;
       return selected.map(f => `【文件: ${f.name}】\n${f.content}`).join('\n\n---\n\n');
     }
@@ -6342,15 +7534,38 @@
       if (!text && fileStore.every(f => !f.selected)) return;
       if (isProcessing) return;
       if (!isAgentOpen) toggleAgent();
+      // Enter/按钮发送前统一：入栈发送历史 + 清导航态
+      if (text) pushNavHistory(text);
+      if (window._navHistory) { window._navHistory._browsing = false; window._navHistory._index = -1; }
       input.value = '';
       input.style.height = 'auto';
       setSendEnabled(false);
       updateStatus('思考中...');
       isProcessing = true;
-      if (text) appendMessage(text, 'user');
+      // 提前捕获选中文件（发送后会被清空 selected），用于渲染附件胶囊
+      const selectedFiles = fileStore.filter(f => f.selected);
+      if (text || selectedFiles.length) {
+        const userDiv = appendMessage(text || '', 'user');
+        // 有附件时，在用户消息文本下方追加胶囊，点击可预览
+        if (selectedFiles.length) {
+          const contentDiv = userDiv.querySelector('.message-content');
+          const chipsWrap = document.createElement('div');
+          chipsWrap.className = 'msg-attachments';
+          selectedFiles.forEach(f => {
+            const chip = document.createElement('span');
+            chip.className = 'msg-attach-chip' + (f.isImage ? ' is-image' : '');
+            chip.innerHTML = `${getFileIcon(f.name)} <span>附件:${escapeHtml(f.name)}</span>`;
+            chip.title = '点击预览';
+            chip.onclick = () => previewAttachedFile(f.id);
+            chipsWrap.appendChild(chip);
+          });
+          contentDiv.appendChild(chipsWrap);
+        }
+      }
 
       const fileContent = getSelectedFilesContent();
-      const fileList = fileStore.filter(f => f.selected).map(f => f.name).join(', ') || '无';
+      const imageFiles = selectedFiles.filter(f => f.isImage);
+      const fileList = selectedFiles.map(f => f.name).join(', ') || '无';
 
       const systemPrompt = `你是 Focus Locker 的专属 AI 助手。职责：帮助用户保持专注、管理待办、控制锁屏系统。
 
@@ -6361,7 +7576,7 @@
 规则：
 1. 当用户要求执行操作时，优先调用工具，不要只给文字建议。
 2. 调用工具后，必须根据工具返回结果，用自然、简洁的中文向用户汇报执行结果。不要只展示原始数据。
-3. 如果有文件附加，文件内容会在下一条消息中提供，请直接分析。
+3. 如果有文件附加，文件内容会在下一条消息中提供，请直接分析。其中图片会以图片形式发送，可直接进行图片识别、OCR、图表分析等。
 4. 保持简洁，不要过度闲聊。
 5. 当用户消息与锁屏/待办无关时，以正常AI身份回答。
 6. 用户询问切换网站时，使用模糊匹配（即要求切换到ABC时可尝试切换到abc或者切换dpsk时尝试切换到DeepSeek）。
@@ -6381,10 +7596,41 @@
         });
       }
 
-      if (text) {
-        messages.push({role: 'user', content: text});
-      } else if (fileContent) {
-        messages.push({role: 'user', content: '请分析以上文件内容并给出总结。'});
+      // 读取图片为 data URL，构造 DeepSeek Vision 的 image_url content 块
+      // 文档：图片只能出现在 user 消息的 content 数组里（system/assistant 消息带图会 400）
+      let imageDataUrls = [];
+      if (imageFiles.length) {
+        for (const f of imageFiles) {
+          try {
+            const res = await window.utils.readImageDataUrl(f.path);
+            if (res && res.success && res.dataUrl) {
+              imageDataUrls.push({ name: f.name, dataUrl: res.dataUrl });
+            } else {
+              appendMessage(`图片 ${f.name} 读取失败: ${(res && res.error) || '未知错误'}`, 'system');
+            }
+          } catch (e) {
+            appendMessage(`图片 ${f.name} 读取失败: ${e.message}`, 'system');
+          }
+        }
+      }
+
+      // 构造主 user 消息：有图片时用 content 数组（text + image_url），无图片时纯文本
+      let userText = text;
+      if (!userText && (fileContent || imageDataUrls.length)) {
+        userText = '请分析以上文件内容并给出总结。';
+      }
+      if (imageDataUrls.length) {
+        const contentBlocks = [];
+        if (userText) contentBlocks.push({ type: 'text', text: userText });
+        for (const img of imageDataUrls) {
+          contentBlocks.push({ type: 'image_url', image_url: { url: img.dataUrl } });
+        }
+        messages.push({ role: 'user', content: contentBlocks });
+      } else if (userText) {
+        messages.push({ role: 'user', content: userText });
+      } else if (imageFiles.length) {
+        // 所有图片读取失败且无文本：补一条提示，避免无 user 消息导致 API 报错
+        messages.push({ role: 'user', content: '附加的图片读取失败，请重新附加。' });
       }
 
       currentContent = '';
@@ -6556,9 +7802,141 @@
     document.getElementById('agentInput').addEventListener('input', function () {
       this.style.height = 'auto';
       this.style.height = Math.min(this.scrollHeight, 200) + 'px';
+      // 有新的输入即退出历史导航
+      if (window._navHistory && window._navHistory._browsing) {
+        window._navHistory._browsing = false;
+        window._navHistory._index = -1;
+      }
     });
+    // ========== 对话输入框键盘增强：↑↓ 历史浏览 + Tab 补全 ==========
+    (function setupInputKeyboard() {
+      const input = document.getElementById('agentInput');
+      if (!input) return;
+
+      // 独立的发送历史栈（仅保存用户已成功发送的文本消息，去重相邻重复，上限 50 条）
+      const stack = window._navHistory; // 由外层作用域创建
+
+      // Tab 可补全的命令词/提示词，按当前输入前缀匹配最长优先，命中后显示在输入框内
+      const _tabCandidates = [
+        '/help', '/todo ', '/add ', '/del ', '/list', '/stats', '/pomodoro', '/timer',
+        '/lock', '/unlock', '/extend ', '/switch ', '/site ', '/quote', '/rain', '/fire',
+        '/waves', '/white', '/stop', '/theme ', '/reset',
+        '开始番茄钟', '暂停番茄钟', '重置番茄钟',
+        '添加待办', '清空待办', '完成待办',
+        '延长锁闭', '立即锁定', '紧急退出',
+        '切换到网站', '打开白名单',
+        '播放雨声', '播放篝火', '播放海浪', '播放白噪音', '停止环境音',
+        '切换主题', '查看专注报告', '查看网站统计'
+      ];
+      // 允许命令行风格斜杠命令自动补全，并支持中文触发词
+      function _findTabMatch(prefix) {
+        if (!prefix || prefix.length < 1) return null;
+        // 命中多个候选时优先最长前缀匹配
+        let best = null;
+        for (const c of _tabCandidates) {
+          if (c.toLowerCase().startsWith(prefix.toLowerCase())) {
+            if (!best || c.length < best.length) best = c;
+          }
+        }
+        return best;
+      }
+
+      input.addEventListener('keydown', (e) => {
+        // -------- ArrowUp / ArrowDown：历史消息导航 --------
+        if (e.key === 'ArrowUp' && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
+          // 仅在光标处于第一行或处于导航中才触发，避免多行编辑光标跑到顶被误识别
+          const isFirstLine = input.selectionStart <= input.value.indexOf('\n') || input.value.indexOf('\n') === -1;
+          if (isFirstLine || stack._browsing) {
+            e.preventDefault();
+            if (!stack._browsing) {
+              stack._browsing = true;
+              stack._draft = input.value;   // 保存当前未发送草稿
+              stack._index = stack.list.length;
+            }
+            if (stack._index > 0) {
+              stack._index -= 1;
+              input.value = stack.list[stack._index];
+            } else if (stack._index === 0 && stack.list.length > 0) {
+              input.value = stack.list[0];  // 到顶保持最老一条
+            }
+            _postNavUpdate(input);
+            return;
+          }
+        }
+        if (e.key === 'ArrowDown' && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
+          const lastNLOffset = input.value.lastIndexOf('\n');
+          const isLastLine = lastNLOffset === -1 || input.selectionStart >= lastNLOffset + 1;
+          if (stack._browsing) {
+            e.preventDefault();
+            if (stack._index < stack.list.length - 1) {
+              stack._index += 1;
+              input.value = stack.list[stack._index];
+            } else {
+              // 到底 → 还原草稿
+              input.value = stack._draft || '';
+              stack._browsing = false;
+              stack._index = -1;
+            }
+            _postNavUpdate(input);
+            return;
+          } else if (isLastLine) {
+            // 非浏览状态下↓键若存在已匹配命令，可循环下一候选
+            const match = _findTabMatch(input.value);
+            if (match && match !== input.value) {
+              e.preventDefault();
+              input.value = match;
+              _postNavUpdate(input);
+              return;
+            }
+          }
+        }
+
+        // -------- Tab：前缀补全 --------
+        if (e.key === 'Tab' && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
+          const val = input.value;
+          if (!val) return;
+          // 仅对最后一个"词"做补全（支持无空格的整词或 /xx 命令）
+          let wordStart = val.search(/\S+$/);
+          if (wordStart === -1) return;
+          const prefix = val.slice(wordStart);
+          if (prefix.length < 1) return;
+          const match = _findTabMatch(prefix);
+          if (match && match !== prefix) {
+            e.preventDefault();
+            input.value = val.slice(0, wordStart) + match;
+            _postNavUpdate(input);
+            // 补全成功短暂提示（无 toast，仅高亮输入框）
+            _flashHighlight(input, '#6366f1');
+          } else {
+            // 无匹配：Shift+Tab 通常是反向跳焦，这里仅阻止 Tab 将焦点移出
+            e.preventDefault();
+            _flashHighlight(input, '#f59e0b');
+          }
+          return;
+        }
+        if (e.key === 'Tab' && e.shiftKey) {
+          // Shift+Tab 允许在无匹配时移焦，不强行改变原生行为
+        }
+      });
+
+      function _postNavUpdate(el) {
+        el.style.height = 'auto';
+        el.style.height = Math.min(el.scrollHeight, 200) + 'px';
+        // 光标置于末尾
+        const L = el.value.length;
+        try { el.setSelectionRange(L, L); } catch (_) {}
+      }
+      function _flashHighlight(el, color) {
+        const prev = el.style.boxShadow;
+        el.style.boxShadow = `0 0 0 3px ${color}33`;
+        el.style.transition = 'box-shadow 0.15s ease';
+        setTimeout(() => { el.style.boxShadow = prev; }, 250);
+      }
+    })();
+
     document.getElementById('agentInput').addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
+        // 实际发送逻辑在 sendAgentMessage() 里统一：入栈、清导航态、清空输入都在那里处理
         e.preventDefault();
         sendAgentMessage();
       }
@@ -6644,9 +8022,13 @@
       document.getElementById('countdownChip').classList.toggle('urgent', urgent);
       document.getElementById('countdownCard').classList.toggle('urgent', urgent);
       timerCheckMilestones();
+      updateDailyTaskTimerText(); // 同步每日任务面板的剩余时间
     }
     function startTimerUI(data) {
       timerInfo = { label: data.label || '倒计时', totalSeconds: Math.max(1, data.totalSeconds), endTime: data.endTime };
+      // 若倒计时标签匹配某个每日任务名，标记该任务为进行中并刷新面板
+      const matched = (dailyTasksData.tasks || []).some(t => t.name === timerInfo.label);
+      if (matched) { dailyTaskActiveName = timerInfo.label; if (typeof renderDailyTasks === 'function') renderDailyTasks(); }
       timerMilestoneSchedule = buildTimerMilestones(timerInfo.totalSeconds);
       timerMilestonesFired = new Set();
       document.getElementById('countdownChip').style.display = 'block';
@@ -6660,6 +8042,7 @@
       timerUITick();
     }
     function stopTimerUI() {
+      const wasDailyTask = !!dailyTaskActiveName;
       timerInfo = null;
       timerMilestoneSchedule = [];
       timerMilestonesFired = new Set();
@@ -6675,6 +8058,8 @@
         const el = document.getElementById(id);
         if (el) el.style.width = '0%';
       });
+      // 倒计时结束/取消：清除每日任务进行中标记并刷新面板
+      if (wasDailyTask) { dailyTaskActiveName = null; if (typeof renderDailyTasks === 'function') renderDailyTasks(); }
     }
     function startCountdownFromUI() {
       const min = parseInt(document.getElementById('countdownMinInput').value, 10) || 0;
@@ -6688,9 +8073,13 @@
       window.utils.cancelTimer().then((r) => { if (r && r.success) stopTimerUI(); }).catch(() => { });
     }
 
-    function showTimerNotification(label) {
+    // pendingTimerTaskId：当前倒计时弹窗关联的每日任务 id（若由 start_daily_task 触发，点「确定」会把它标记完成）
+    let pendingTimerTaskId = null;
+
+    function showTimerNotification(label, taskId) {
       const notif = document.getElementById('timerNotification');
       document.getElementById('timerLabel').textContent = label + ' 倒计时结束！';
+      pendingTimerTaskId = taskId || null;
       notif.style.display = 'block';
       // 播放音效（音量已提高）
       playBeep();
@@ -6698,6 +8087,26 @@
 
     function closeTimerNotification() {
       document.getElementById('timerNotification').style.display = 'none';
+      pendingTimerTaskId = null;
+    }
+
+    // 「确定」按钮：若有 taskId 关联，调用 setDailyTask 把对应每日任务标记完成（幂等，不会反复反转）
+    function onTimerNotifConfirm() {
+      const taskId = pendingTimerTaskId;
+      closeTimerNotification();
+      if (taskId && window.utils && window.utils.setDailyTask) {
+        window.utils.setDailyTask(taskId, true).catch(e => console.warn('标记每日任务完成失败', e));
+      }
+    }
+
+    // 「延长 5 分钟」按钮：重新启动 5 分钟倒计时，沿用原 label 和 taskId，再次结束时仍可点「确定」标记任务完成
+    function onTimerNotifExtend() {
+      const label = (document.getElementById('timerLabel').textContent || '').replace(/\s*倒计时结束！$/, '');
+      const taskId = pendingTimerTaskId;
+      closeTimerNotification();
+      if (window.utils && window.utils.setTimer) {
+        window.utils.setTimer(5 * 60, label, taskId || null);
+      }
     }
 
     // 提高音效音量
@@ -6728,37 +8137,14 @@
     window.utils.onTimerCancelled(() => stopTimerUI());
     window.utils.onTimerDone((data) => {
       stopTimerUI();
-      showTimerNotification(data.label || '倒计时');
+      // data.taskId 存在时，弹窗点「确定」会把对应每日任务标记完成
+      showTimerNotification(data.label || '倒计时', data.taskId || null);
     });
 
     // ===== 初始化 =====
     window.addEventListener('DOMContentLoaded', async () => {
       applyLayoutStyle();
-
-      // ---- 官网同款氛围：星星生成（70 颗，遵循 reduced-motion） ----
-      (function initStars() {
-        try {
-          var wrap = document.getElementById('bgStars');
-          if (!wrap) return;
-          var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-          if (reduced) return;
-          var COUNT = 70;
-          var frag = document.createDocumentFragment();
-          for (var i = 0; i < COUNT; i++) {
-            var s = document.createElement('span');
-            s.className = 'star';
-            var size = (Math.random() * 1.6 + 1).toFixed(1);
-            s.style.width = size + 'px';
-            s.style.height = size + 'px';
-            s.style.left = (Math.random() * 100).toFixed(2) + '%';
-            s.style.top = (Math.random() * 100).toFixed(2) + '%';
-            s.style.animationDuration = (Math.random() * 4 + 2.5).toFixed(1) + 's';
-            s.style.animationDelay = (Math.random() * 4).toFixed(1) + 's';
-            frag.appendChild(s);
-          }
-          wrap.appendChild(frag);
-        } catch (_) { /* ignore */ }
-      })();
+      applyTheme(); // 同步主题按钮激活态（首屏 data-theme 已由 head 内联脚本设置）
 
       try {isTestMode = await window.utils.getTestMode();} catch (e) { }
       try {
@@ -6769,6 +8155,7 @@
       updateClock();
       setInterval(updateClock, 1000);
       loadTodos();
+      await loadDailyTasks();
       initPomodoroUI();
       // 恢复进行中的倒计时（页面刷新/遮罩重建后进度条与横幅规则继续生效）
       try {
