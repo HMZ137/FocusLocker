@@ -5,9 +5,14 @@ const { exec, execSync, spawn } = require('child_process');
 const { StringDecoder } = require('string_decoder');
 const https = require('https');
 const { getBaseDir, getDataDir, loadAppConfig, saveConfigPatch, loadRawConfig, normalizeDailyTasks } = require('./main/config');
-const { importUserScript, injectUserScripts, loadCrxExtensions, loadUserScripts, loadExtensionSettings, saveExtensionSettings, installExtensionFile, installExtensionDir, importUserStyle, loadUserStyles, injectUserStyles, loadUserstyleSettings, listUserStylesMeta, saveUserStyleVarOverrides, toggleUserStyle, deleteUserStyle, compileUserStyle, promoteImportant, equivalentKeys } = require('./main/extensions');
-const { MicaBrowserWindow, IS_WINDOWS_11 } = require('mica-electron');
+const { importUserScript, injectUserScripts, loadCrxExtensions, loadUserScripts, loadExtensionSettings, saveExtensionSettings, installExtensionFile, installExtensionDir, importUserStyle, loadUserStyles, injectUserStyles, listUserStylesMeta, saveUserStyleVarOverrides, toggleUserStyle, deleteUserStyle, compileUserStyle, promoteImportant, equivalentKeys } = require('./main/extensions');
+const { MicaBrowserWindow } = require('mica-electron');
 const BROWSER_VIEW_PARTITION = 'persist:focus-locker-browser-views';
+
+// 右侧通知中心拖拽手柄预留宽度（px）：仅经典布局（左右分栏）的 BrowserView 右侧留出此宽度，
+// 避免原生 BrowserView 覆盖 DOM 层的拖拽手柄，导致从右侧拖拽唤出无反应。
+// 现代布局下改用渲染端精确上报 site-stage 包围盒，不再硬减 NC_EDGE_PX（否则会出现底部/右侧空白）。
+const NC_EDGE_PX = 22;
 
 // ========== 日志系统 ==========
 const LOG_FILE = path.join(app.getPath('userData'), 'logs', 'app.log');
@@ -33,6 +38,7 @@ const XLSX = require('xlsx');
 const mammoth = require('mammoth');
 const csv = require('csv-parser');
 const { Readable } = require('stream');
+const { buildBackupZip, applyBackupZip } = require('./main/backup');
 const baseDir = getBaseDir(app);
 const dataDir = getDataDir(app); // 用户可变数据目录（userData）：跨重装保留
 const svvPath = path.join(baseDir, 'SoundVolumeView.exe');
@@ -40,10 +46,10 @@ const svvPath = path.join(baseDir, 'SoundVolumeView.exe');
 // ========== Electron 配置 ==========
 app.commandLine.appendSwitch('disable-blink-features', 'AutomationControlled');
 app.commandLine.appendSwitch('ignore-certificate-errors');
-app.commandLine.appendSwitch('disable-features', 'OutOfBlinkCors');
+app.commandLine.appendSwitch('disable-features', 'OutOfBlinkCors,WebRtc');
 // 限制磁盘缓存 400MB：所有 persist 分区共用磁盘上限；防止网站刷几天之后 Cache 目录飙到几 GB
 app.commandLine.appendSwitch('disk-cache-size', String(400 * 1024 * 1024));
-// 限制渲染进程数量，避免 N 个网站 = N 个 Chromium 渲染进程常驻
+// 限制渲染进程总数（多个网站 BrowserView 各占用一个渲染进程，超限时复用，避免进程无上限增长）
 app.commandLine.appendSwitch('renderer-process-limit', '4');
 
 const args = process.argv.slice(1);
@@ -114,6 +120,30 @@ let testHandoffActive = false;  // 生产实例收到测试模式 second-instanc
 const testLockFile = path.join(baseDir, '.test-active'); // 测试实例存活标记文件：退出时删除，生产实例据此恢复调度
 
 let forceAlwaysOnTop = true;
+// 原生保存/打开对话框若处于普通层级，会被 screen-saver 级的锁屏 overlay 压在下方导致看不见、无法交互。
+// 这两个封装在显示对话框前临时取消 overlay 置顶，关闭后按 forceAlwaysOnTop 恢复原置顶策略，确保对话框可见。
+async function showSaveDialogAboveOverlay(options) {
+  return withOverlayLowered(() => dialog.showSaveDialog(overlayWin && !overlayWin.isDestroyed() ? overlayWin : null, options));
+}
+async function showOpenDialogAboveOverlay(options) {
+  return withOverlayLowered(() => dialog.showOpenDialog(overlayWin && !overlayWin.isDestroyed() ? overlayWin : null, options));
+}
+async function withOverlayLowered(fn) {
+  let needRestore = false;
+  if (overlayWin && !overlayWin.isDestroyed() && overlayWin.isAlwaysOnTop()) {
+    try { overlayWin.setAlwaysOnTop(false); needRestore = true; } catch (_) {}
+  }
+  try {
+    return await fn();
+  } finally {
+    if (needRestore && overlayWin && !overlayWin.isDestroyed()) {
+      try { overlayWin.setAlwaysOnTop(forceAlwaysOnTop, 'screen-saver'); } catch (_) {}
+    }
+  }
+}
+// 查看验证码配额：每次启动（应用进程生命周期）仅允许使用固定次数
+const MAX_VERIFY_CODE_PER_LAUNCH = 2;
+let verifyCodeQuota = MAX_VERIFY_CODE_PER_LAUNCH;
 let isMusicPopped = false;
 
 let isEmergencyBreak = false;
@@ -136,13 +166,14 @@ const DEFAULT_SHORTCUTS = {
   toggleAgent: 'Ctrl+Shift+Alt+A',
   extendLock: 'Ctrl+Shift+Alt+E',
   toggleSiteLock: 'Ctrl+Shift+Alt+L',
-  relock: 'Ctrl+Shift+Alt+R'
+  relock: 'Ctrl+Shift+Alt+R',
+  captureScreenshot: 'Ctrl+Shift+Alt+S'
 };
-const SHORTCUT_ACTIONS = { switchSite: 'switchSite', toggleAlwaysOnTop: 'toggleAlwaysOnTop', emergencyExit: 'emergencyExit', toggleAgent: 'toggleAgent', extendLock: 'extendLock', toggleSiteLock: 'toggleSiteLock', relock: 'relock' };
+const SHORTCUT_ACTIONS = { switchSite: 'switchSite', toggleAlwaysOnTop: 'toggleAlwaysOnTop', emergencyExit: 'emergencyExit', toggleAgent: 'toggleAgent', extendLock: 'extendLock', toggleSiteLock: 'toggleSiteLock', relock: 'relock', captureScreenshot: 'captureScreenshot' };
 
 // ===== 强化锁定 / 番茄钟 / 专注统计 =====
 const FOCUS_SETTINGS_FILE = path.join(dataDir, 'focus-settings.json');
-let focusSettings = { minLockMinutes: 0, verifyCodeEnabled: true, focusLen: 25, breakLen: 5, siteLockMinMinutes: 0, timerSyncPomodoro: true, instantMode: false, shortcuts: { ...DEFAULT_SHORTCUTS } };
+let focusSettings = { minLockMinutes: 0, verifyCodeEnabled: true, focusLen: 25, breakLen: 5, siteLockMinMinutes: 0, timerSyncPomodoro: true, instantMode: false, shortcuts: { ...DEFAULT_SHORTCUTS }, notifStyle: 'toast', notifCorner: 'br', notifDragOpen: true, notifDotHidden: true };
 let pendingMinSettings = null; // 已保存但下次出现遮罩才应用的两个最短时长设置
 let pendingTaskRatio = null;   // 已保存但下次出现遮罩才应用的「每日任务完成率阈值」（自定义任务完成比例）
 let lockStartedAt = null;   // 本次锁屏开始时间（用于最短锁定时长校验）
@@ -1000,21 +1031,7 @@ async function muteTargetProcesses() {
   }
 }
 
-// 异步恢复
-async function unmuteTargetProcesses() {
-  for (const [, info] of processVolumes) {
-    let ok = await runSvv(`/SetVolume "${info.name}" 100`);
-    if (!ok) ok = await runSvv(`/Unmute "${info.name}"`);
-    if (ok) {
-      logToFile('INFO', `[Volume] Unmuted: ${info.name}`);
-    } else {
-      logToFile('ERROR', `[Volume] Failed to unmute: ${info.name}`);
-    }
-  }
-  processVolumes.clear();
-}
-
-// 同步恢复
+// 同步恢复（程序退出/遮罩销毁时调用，确保音量/静音状态复位）
 function unmuteTargetProcessesSync() {
   if (!fs.existsSync(svvPath)) {
     logToFile('ERROR', `[Volume] SoundVolumeView.exe not found at: ${svvPath}`);
@@ -1359,9 +1376,7 @@ function extendLockTime(minutes) {
   extendTimer = setInterval(() => {
     const nowTs = Date.now();
     const remaining = Math.max(0, Math.floor((extendedUntil - nowTs) / 1000));
-    if (overlayWin && !overlayWin.isDestroyed()) {
-      overlayWin.webContents.send('extended-status', remaining);
-    }
+    sendExtendedStatus(remaining);
     if (remaining === 0) {
       clearInterval(extendTimer);
       extendTimer = null;
@@ -2256,7 +2271,11 @@ function loadFocusSettings() {
         shortcuts: { ...DEFAULT_SHORTCUTS, ...(s.shortcuts && typeof s.shortcuts === 'object' ? s.shortcuts : {}) },
         dailyTaskDate: s.dailyTaskDate || '',
         dailyTaskCompleted: (s.dailyTaskCompleted && typeof s.dailyTaskCompleted === 'object') ? s.dailyTaskCompleted : {},
-        dailyTaskRatio: Math.max(0.1, Math.min(1, Number(s.dailyTaskRatio) || 0.6))
+        dailyTaskRatio: Math.max(0.1, Math.min(1, Number(s.dailyTaskRatio) || 0.6)),
+        notifStyle: (s.notifStyle === 'capsule' || s.notifStyle === 'toast') ? s.notifStyle : 'toast',
+        notifCorner: (s.notifCorner === 'tl' || s.notifCorner === 'tr' || s.notifCorner === 'bl' || s.notifCorner === 'br') ? s.notifCorner : 'br',
+        notifDragOpen: s.notifDragOpen !== false,
+        notifDotHidden: s.notifDotHidden !== false
       };
     }
   } catch (e) { logToFile('WARN', '读取锁定设置失败', e.message); }
@@ -2499,6 +2518,7 @@ function registerOverlayShortcuts() {
   reg(sc.toggleAgent, 'toggleAgent');
   reg(sc.extendLock, 'extendLock');
   reg(sc.toggleSiteLock, 'toggleSiteLock');
+  reg(sc.captureScreenshot, 'captureScreenshot');
   registerRelockShortcut(); // 重新锁定快捷键独立注册，遮罩关闭后仍可用
   logToFile('INFO', '全局快捷键注册完成', sc);
 }
@@ -2514,6 +2534,7 @@ function runShortcutAction(action) {
         .then(minutes => { if (minutes !== null) extendLockTime(minutes); });
       break;
     case 'toggleSiteLock': toggleSiteLock(); break;
+    case 'captureScreenshot': overlayWin.webContents.send('trigger-capture-screenshot'); break;
     default: break;
   }
 }
@@ -2612,6 +2633,8 @@ function createSiteView(site) {
   view.webContents.on('did-finish-load', () => {
     if (view.webContents.isDestroyed()) return;
     view.webContents.setZoomFactor(site.zoom);
+    // 约束网页内视频最大不超过容器，避免高分辨率视频把画面撑到面板控件区域之外
+    try { view.webContents.insertCSS('video{max-width:100%!important;max-height:100%!important;}', { cssOrigin: 'user' }); } catch (e) {}
     if (site.injectCSS) {
       // 站点级自定义 CSS 同样以「用户来源」注入并强制 !important，
       // 稳定盖过原站样式（含原站的 !important），不再抢位置/重叠
@@ -2629,6 +2652,13 @@ function createSiteView(site) {
   });
   view.webContents.on('before-input-event', (event, input) => {
     handleShortcut(event, input);
+  });
+  // 防御：网页内视频调用 requestFullscreen 会让 BrowserView 被 Chromium 撑满整个窗口，
+  // 从而盖住遮罩自身的 DOM 控件（面板 header 按钮、dock 等），导致控件按不动。
+  // 这里在网页进入全屏时立刻退出网页全屏，并把 BrowserView 重新约束回面板内容区。
+  view.webContents.on('enter-full-screen', () => {
+    try { if (!view.webContents.isDestroyed()) view.webContents.executeJavaScript('if(document.fullscreenElement)document.exitFullscreen();'); } catch (e) {}
+    updateBrowserViewBounds();
   });
   // 防御：webContents 被 Chromium 提前销毁时同步清理 Map，避免遗留空引用导致下次懒加载跳过
   view.webContents.on('destroyed', () => {
@@ -2766,24 +2796,31 @@ function updateBrowserViewBounds() {
   if (!overlayWin || overlayWin.isDestroyed() || viewsMap.size === 0 || isMusicPopped) return;
   const bounds = overlayWin.getBounds();
   const hiddenBounds = { x: bounds.width + 1000, y: 0, width: bounds.width, height: bounds.height };
-  // 顶部每日任务进度条高度（6px 条 + 2px 间隙）：网站视图须从其下方开始，避免盖住进度条
-  const TOP_BAR_PX = 8;
-  // 经典布局（左右分栏）：网站常驻右侧 40%，顶部让位给全宽进度条
+  // 浏览器原生视图始终位于 DOM 之下，DOM 元素（含顶部进度条/面板 chrome）本来就浮在它上面，
+  // 故无需为其预留顶部空间；设为 0 让网页与对话/文件/设置等面板内容区像素级对齐（占满面板内容区）。
+  const TOP_BAR_PX = 0;
+  // 经典布局（左右分栏）：网站常驻右侧 40%，顶部让位给全宽进度条；右侧留出 NC_EDGE_PX 给拖拽手柄
+  // （仅经典布局使用：现代布局改由渲染端精确上报 site-stage 包围盒）
   if (layoutMode === 'legacy') {
     const rightWidth = Math.floor(bounds.width * 0.4);
+    // 经典布局（左右分栏）：网站常驻右侧 40%，顶部让位给全宽进度条（由 DOM 浮于 BrowserView 之上覆盖）。
+    // 不再预留 NC_EDGE_PX（经典模式已无右侧通知中心拖拽手柄），让网页铺满整个右侧面板，去除右侧留空。
     const visibleBounds = { x: bounds.width - rightWidth, y: TOP_BAR_PX, width: rightWidth, height: bounds.height - TOP_BAR_PX };
     viewsMap.forEach((view, id) => {
       view.setBounds(id === visibleSiteId ? visibleBounds : hiddenBounds);
     });
     return;
   }
-  // 现代布局：网站视图激活时铺在面板内容区（header 下方），随面板高度调整；否则整体隐藏
+  // 现代布局：网站视图激活时铺在面板内容区（header 下方），由渲染端 syncSitePanelBounds()
+  // 同步完整 rect（left/top/width/height），精确匹配 site-stage 包围盒，零偏移、零空白；
+  // 仅对 0 高度/不可见 rect 走 hiddenBounds 兜底隐藏。
   let visibleBounds = hiddenBounds;
-  if (siteViewActive && sitePanelBounds) {
-    const maxTop = bounds.height - 40;
-    const top = Math.max(TOP_BAR_PX, Math.min(sitePanelBounds.top, maxTop));
+  if (siteViewActive && sitePanelBounds && sitePanelBounds.width > 0 && sitePanelBounds.height >= 40) {
+    const top = Math.max(TOP_BAR_PX, Math.min(sitePanelBounds.top, bounds.height - 40));
+    const left = Math.max(0, Math.min(sitePanelBounds.left, bounds.width - 40));
+    const width = Math.max(40, Math.min(sitePanelBounds.width, bounds.width - left));
     const height = Math.max(40, Math.min(sitePanelBounds.height, bounds.height - top));
-    visibleBounds = { x: 0, y: top, width: bounds.width, height };
+    visibleBounds = { x: left, y: top, width, height };
   }
   viewsMap.forEach((view, id) => {
     if (id === visibleSiteId && siteViewActive) view.setBounds(visibleBounds);
@@ -2913,6 +2950,16 @@ function toggleAlwaysOnTop() {
   }
 }
 
+// 生产模式「查看验证码」：临时关闭/恢复强制置顶（不受 isTestMode 限制，供渲染端一键调用）
+function setOverlayAlwaysOnTop(enabled) {
+  forceAlwaysOnTop = !!enabled;
+  if (overlayWin && !overlayWin.isDestroyed()) {
+    overlayWin.setAlwaysOnTop(forceAlwaysOnTop, 'screen-saver');
+    overlayWin.webContents.send('always-on-top-changed', forceAlwaysOnTop);
+  }
+  return forceAlwaysOnTop;
+}
+
 // ========== 遮罩窗口 ==========
 async function createOverlay() {
   if (overlayWin) return;
@@ -3019,9 +3066,7 @@ async function createOverlay() {
         extendTimer = setInterval(() => {
           const nowTs = Date.now();
           const remaining = Math.max(0, Math.floor((extendedUntil - nowTs) / 1000));
-          if (overlayWin && !overlayWin.isDestroyed()) {
-            overlayWin.webContents.send('extended-status', remaining);
-          }
+          sendExtendedStatus(remaining);
           if (remaining === 0) {
             clearInterval(extendTimer);
             extendTimer = null;
@@ -3481,7 +3526,14 @@ ipcMain.handle('set-site-view', async (event, active) => {
 });
 ipcMain.handle('set-site-panel-bounds', async (event, rect) => {
   if (rect && typeof rect.top === 'number' && typeof rect.height === 'number') {
-    sitePanelBounds = { top: Math.round(rect.top), height: Math.round(rect.height) };
+    // 接收完整 site-stage 包围盒（left/top/width/height），让 BrowserView 精确对齐面板内容区，
+    // 消除底部 72px dock 预留与右侧 NC_EDGE_PX 22px 减宽带来的"右侧/底部空白"
+    sitePanelBounds = {
+      left: typeof rect.left === 'number' ? Math.round(rect.left) : 0,
+      top: Math.round(rect.top),
+      width: typeof rect.width === 'number' ? Math.round(rect.width) : 0,
+      height: Math.round(rect.height)
+    };
     if (siteViewActive) updateBrowserViewBounds();
   }
   return true;
@@ -3497,6 +3549,15 @@ ipcMain.handle('toggle-always-on-top', async () => {
   return forceAlwaysOnTop;
 });
 ipcMain.handle('get-always-on-top', async () => forceAlwaysOnTop);
+ipcMain.handle('set-always-on-top', async (event, enabled) => setOverlayAlwaysOnTop(enabled));
+ipcMain.handle('get-verify-code-quota', async () => verifyCodeQuota);
+ipcMain.handle('consume-verify-code', async () => {
+  if (verifyCodeQuota > 0) {
+    verifyCodeQuota--;
+    return { ok: true, remaining: verifyCodeQuota };
+  }
+  return { ok: false, remaining: verifyCodeQuota };
+});
 ipcMain.handle('get-test-mode', async () => isTestMode);
 ipcMain.handle('get-instant-mode', async () => instantMode);
 // 测试辅助（仅 --test 模式）：绕过全局快捷键直接驱动即时退出/手动重新锁定，供 CDP 冒烟测试
@@ -3583,6 +3644,7 @@ ipcMain.handle('cancel-timer', async () => {
 });
 
 // DeepSeek AI
+ipcMain.handle('get-api-configured', async () => !!deepseekApiKey);
 ipcMain.handle('deepseek-chat', async (event, messages) => {
   if (!deepseekApiKey) {
     event.sender.send('chat-error', '未配置 DeepSeek API Key');
@@ -3657,7 +3719,7 @@ ipcMain.on('deepseek-abort', () => {
 // 文件操作
 ipcMain.handle('open-file-dialog', async () => {
   if (!overlayWin || overlayWin.isDestroyed()) return null;
-  const result = await dialog.showOpenDialog(overlayWin, {
+  const result = await showOpenDialogAboveOverlay({
     properties: ['openFile', 'multiSelections'],
     filters: [
       { name: '支持的文件', extensions: ['txt','pdf','docx','xlsx','xls','csv','md','json','js','py','html','css','ts','c','cpp','java','go','rs','sql','yaml','yml','xml','log'] },
@@ -3701,7 +3763,7 @@ ipcMain.handle('read-image-data-url', async (event, filePath) => {
 
 ipcMain.handle('save-file', async (event, content, defaultName) => {
   if (!overlayWin || overlayWin.isDestroyed()) return null;
-  const result = await dialog.showSaveDialog(overlayWin, {
+  const result = await showSaveDialogAboveOverlay({
     title: '保存文件',
     defaultPath: defaultName || 'output.txt',
     properties: ['createDirectory', 'showOverwriteConfirmation']
@@ -3787,7 +3849,7 @@ ipcMain.handle('get-file-view-config', async () => {
 });
 ipcMain.handle('pick-file-view-dirs', async () => {
   if (!overlayWin || overlayWin.isDestroyed()) return [];
-  const result = await dialog.showOpenDialog(overlayWin, {
+  const result = await showOpenDialogAboveOverlay({
     title: '选择要查看的文件夹（可多选）',
     properties: ['openDirectory', 'multiSelections']
   });
@@ -3810,7 +3872,7 @@ ipcMain.handle('scan-file-view', async () => {
   const files = [];
   for (const root of roots) scanDirRecursive(root.dir, root.label, files);
   const uploaded = loadUploadedFiles();
-  for (const f of files) f.uploaded = uploaded.has(f.name);
+  for (const f of files) f.uploaded = uploaded.has(f.name) && !f.name.startsWith('overlay_');
   files.sort((a, b) => (a.root === b.root ? (a.rel < b.rel ? -1 : 1) : (a.root < b.root ? -1 : 1)));
   return { files, filesDir };
 });
@@ -3830,7 +3892,7 @@ ipcMain.handle('open-files-dir', async () => {
 ipcMain.handle('export-selected-files', async (event, filePaths) => {
   if (!overlayWin || overlayWin.isDestroyed()) return { canceled: true };
   if (!Array.isArray(filePaths) || !filePaths.length) return { canceled: true };
-  const result = await dialog.showOpenDialog(overlayWin, {
+  const result = await showOpenDialogAboveOverlay({
     title: '选择导出目标文件夹',
     properties: ['openDirectory', 'createDirectory']
   });
@@ -3852,7 +3914,7 @@ ipcMain.handle('export-selected-files', async (event, filePaths) => {
 // 上传文件到 files 目录（重名自动加序号），供新文件查看页合并旧文件系统的上传功能
 ipcMain.handle('import-files-to-files-dir', async () => {
   if (!overlayWin || overlayWin.isDestroyed()) return { canceled: true };
-  const result = await dialog.showOpenDialog(overlayWin, {
+  const result = await showOpenDialogAboveOverlay({
     title: '选择要上传的文件（可多选）',
     properties: ['openFile', 'multiSelections'],
     filters: [
@@ -3877,6 +3939,26 @@ ipcMain.handle('import-files-to-files-dir', async () => {
   }
   saveUploadedFiles(uploaded);
   return { canceled: false, files: imported, filesDir };
+});
+// 遮罩内置截屏：截取 overlay 窗口内容，保存到 files 目录并登记为已上传文件
+ipcMain.handle('capture-screenshot', async () => {
+  if (!overlayWin || overlayWin.isDestroyed()) return { success: false, error: 'overlay 窗口不可用' };
+  try {
+    const nativeImage = await overlayWin.webContents.capturePage();
+    if (!nativeImage || nativeImage.isEmpty()) return { success: false, error: '截屏内容为空' };
+    const filesDir = ensureFilesDir();
+    const ts = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const stamp = `${ts.getFullYear()}${pad(ts.getMonth() + 1)}${pad(ts.getDate())}_${pad(ts.getHours())}${pad(ts.getMinutes())}${pad(ts.getSeconds())}`;
+    let dest = path.join(filesDir, `overlay_${stamp}.png`);
+    let i = 1;
+    while (fs.existsSync(dest)) dest = path.join(filesDir, `overlay_${stamp}_${i++}.png`);
+    fs.writeFileSync(dest, nativeImage.toPNG());
+    return { success: true, path: dest, fileName: path.basename(dest) };
+  } catch (e) {
+    logToFile('WARN', '遮罩截屏失败', e.message);
+    return { success: false, error: e.message };
+  }
 });
 // 将本地已存在的文件复制到 files 目录并标记为"上传"（不弹系统对话框）
 ipcMain.handle('import-selected-files', async (event, filePaths) => {
@@ -3922,7 +4004,7 @@ ipcMain.handle('delete-uploaded-file', async (event, filePath) => {
 // 选择文件附加到对话（不复制到文件库），返回文件基本信息
 ipcMain.handle('pick-files-to-attach', async () => {
   if (!overlayWin || overlayWin.isDestroyed()) return { canceled: true };
-  const result = await dialog.showOpenDialog(overlayWin, {
+  const result = await showOpenDialogAboveOverlay({
     title: '选择要附加到对话的文件（可多选）',
     properties: ['openFile', 'multiSelections'],
     filters: [
@@ -3940,7 +4022,7 @@ ipcMain.handle('pick-files-to-attach', async () => {
 
 ipcMain.handle('import-user-script-dialog', async () => {
   if (!overlayWin || overlayWin.isDestroyed()) return null;
-  const result = await dialog.showOpenDialog(overlayWin, {
+  const result = await showOpenDialogAboveOverlay({
     title: '导入用户脚本',
     properties: ['openFile'],
     filters: [
@@ -4046,7 +4128,7 @@ async function reloadExtensions() {
 // 像正常浏览器一样安装扩展：选择 .crx 文件
 ipcMain.handle('install-extension-dialog', async () => {
   if (!overlayWin || overlayWin.isDestroyed()) return null;
-  const result = await dialog.showOpenDialog(overlayWin, {
+  const result = await showOpenDialogAboveOverlay({
     title: '安装 CRX 扩展',
     properties: ['openFile'],
     filters: [
@@ -4067,7 +4149,7 @@ ipcMain.handle('install-extension-dialog', async () => {
 // 像正常浏览器一样安装扩展：选择解压扩展文件夹（含 manifest.json）
 ipcMain.handle('install-extension-dir-dialog', async () => {
   if (!overlayWin || overlayWin.isDestroyed()) return null;
-  const result = await dialog.showOpenDialog(overlayWin, {
+  const result = await showOpenDialogAboveOverlay({
     title: '安装解压扩展文件夹',
     properties: ['openDirectory']
   });
@@ -4084,7 +4166,7 @@ ipcMain.handle('install-extension-dir-dialog', async () => {
 // 导入用户样式（.user.css，Stylus 风格），复制到用户数据目录 userstyles/
 ipcMain.handle('import-user-style-dialog', async () => {
   if (!overlayWin || overlayWin.isDestroyed()) return null;
-  const result = await dialog.showOpenDialog(overlayWin, {
+  const result = await showOpenDialogAboveOverlay({
     title: '导入用户样式',
     properties: ['openFile'],
     filters: [
@@ -4339,7 +4421,7 @@ ipcMain.handle('set-sound-cover', async (event, type) => {
   const valid = AMBIENT_TYPES.includes(type) || isCustomSoundType(type);
   if (!valid) return { success: false, error: '音效类型无效' };
   if (!overlayWin || overlayWin.isDestroyed()) return { success: false, error: '遮罩不可用' };
-  const result = await dialog.showOpenDialog(overlayWin, {
+  const result = await showOpenDialogAboveOverlay({
     title: '选择背景图',
     filters: [{ name: '图片文件', extensions: ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif'] }],
     properties: ['openFile']
@@ -4366,7 +4448,7 @@ ipcMain.handle('get-sound-covers', async () => loadAmbientCovers());
 ipcMain.handle('get-custom-sounds', async () => loadCustomSounds());
 ipcMain.handle('add-custom-sounds', async () => {
   if (!overlayWin || overlayWin.isDestroyed()) return loadCustomSounds();
-  const result = await dialog.showOpenDialog(overlayWin, {
+  const result = await showOpenDialogAboveOverlay({
     title: '选择自定义环境音音频（可多选）',
     filters: [{ name: '音频文件', extensions: ['mp3', 'wav', 'flac', 'ogg', 'm4a', 'aac', 'webm'] }],
     properties: ['openFile', 'multiSelections']
@@ -4457,10 +4539,20 @@ ipcMain.handle('set-overlay-material', async (event, material) => {
   } catch (e) { logToFile('WARN', '切换遮罩材质失败', e.message); return false; }
 });
 ipcMain.handle('get-focus-settings', async () => ({ ...focusSettings, ...(pendingMinSettings || {}), dailyTaskRatio: pendingTaskRatio != null ? pendingTaskRatio : (focusSettings.dailyTaskRatio ?? 0.6) }));
+// ========== 通知样式偏好（持久化，避免渲染进程 localStorage 不跨会话保留导致重启变回横幅）==========
+ipcMain.handle('get-notif-prefs', async () => ({ style: focusSettings.notifStyle || 'toast', corner: focusSettings.notifCorner || 'br', dragOpen: focusSettings.notifDragOpen !== false, dotHidden: focusSettings.notifDotHidden !== false }));
+ipcMain.handle('set-notif-prefs', async (event, prefs) => {
+  if (prefs && typeof prefs === 'object') {
+    if (prefs.style === 'capsule' || prefs.style === 'toast') focusSettings.notifStyle = prefs.style;
+    if (['tl', 'tr', 'bl', 'br'].includes(prefs.corner)) focusSettings.notifCorner = prefs.corner;
+    if (typeof prefs.dragOpen === 'boolean') focusSettings.notifDragOpen = prefs.dragOpen;
+    if (typeof prefs.dotHidden === 'boolean') focusSettings.notifDotHidden = prefs.dotHidden;
+    saveFocusSettingsToFile({ ...focusSettings });
+  }
+  return { style: focusSettings.notifStyle, corner: focusSettings.notifCorner, dragOpen: focusSettings.notifDragOpen, dotHidden: focusSettings.notifDotHidden };
+});
 
 // ========== 每日任务 ==========
-function getTodayStr() { return new Date().toISOString().slice(0, 10); }
-
 // 构建当前 dailyTasks 的 name→id 映射，用于完成状态回退匹配与 id 变更后迁移
 function buildDailyTaskByName() {
   const m = new Map();
@@ -4543,7 +4635,8 @@ function migrateDailyTaskState(state) {
 
 // 取当前每日任务完成状态（按今日日期重置 + 变更时做 id 迁移 + 持久化）
 function getDailyTaskState() {
-  const today = getTodayStr();
+  // 每日任务按本地时区的「今天」重置（与统计 todayStr 一致），避免 UTC 边界导致重置晚 8 小时
+  const today = todayStr();
   let needSave = false;
   if (!focusSettings.dailyTaskDate || focusSettings.dailyTaskDate !== today) {
     focusSettings.dailyTaskDate = today;
@@ -4646,7 +4739,12 @@ ipcMain.handle('save-focus-settings', async (event, settings) => {
       shortcuts: focusSettings.shortcuts || { ...DEFAULT_SHORTCUTS }, // 保留快捷键配置不被覆盖
       dailyTaskDate: focusSettings.dailyTaskDate || '',
       dailyTaskCompleted: (focusSettings.dailyTaskCompleted && typeof focusSettings.dailyTaskCompleted === 'object') ? focusSettings.dailyTaskCompleted : {},
-      dailyTaskRatio: Math.max(0.1, Math.min(1, Number(settings.dailyTaskRatio) || 0.6))
+      dailyTaskRatio: Math.max(0.1, Math.min(1, Number(settings.dailyTaskRatio) || 0.6)),
+      // 保留通知样式偏好（不被专注设置保存覆盖，避免重启变回横幅）
+      notifStyle: (settings.notifStyle === 'capsule' || settings.notifStyle === 'toast') ? settings.notifStyle : (focusSettings.notifStyle || 'toast'),
+      notifCorner: (['tl', 'tr', 'bl', 'br'].includes(settings.notifCorner)) ? settings.notifCorner : (focusSettings.notifCorner || 'br'),
+      notifDragOpen: typeof settings.notifDragOpen === 'boolean' ? settings.notifDragOpen : (focusSettings.notifDragOpen !== false),
+      notifDotHidden: typeof settings.notifDotHidden === 'boolean' ? settings.notifDotHidden : (focusSettings.notifDotHidden !== false)
     };
     // 两个最短时长选项 + 自定义任务完成比例：保存后不立即生效，等下次出现遮罩时才应用；其余立即生效
     pendingMinSettings = {
@@ -4857,6 +4955,51 @@ function scheduleCookieFlush() {
   }, 3000);
 }
 
+// ========== 数据备份 / 导入 ==========
+ipcMain.handle('export-all-data', async (event, opts) => {
+  if (!overlayWin || overlayWin.isDestroyed()) return { canceled: true };
+  // 先让用户选择保存位置：通过 showSaveDialogAboveOverlay 在对话框显示期间临时取消
+  // overlay 的 screen-saver 级置顶，关闭后恢复原置顶策略，避免位置选择框被锁屏压在下方看不见，再打包写盘
+  const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+  let result;
+  try {
+    result = await showSaveDialogAboveOverlay({
+      title: '导出 FocusLocker 数据',
+      defaultPath: `FocusLocker-备份-${stamp}.zip`,
+      filters: [{ name: 'ZIP 备份文件', extensions: ['zip'] }]
+    });
+  } catch (e) {
+    return { success: false, error: '打开保存对话框失败：' + e.message };
+  }
+  if (result.canceled || !result.filePath) return { canceled: true };
+  try {
+    const buf = await buildBackupZip(opts, { dataDir, baseDir, browserViewSession });
+    fs.writeFileSync(result.filePath, buf);
+    return { success: true, path: result.filePath };
+  } catch (e) {
+    logToFile('ERROR', '导出数据失败', e.message);
+    return { success: false, error: e.message };
+  }
+});
+
+ipcMain.handle('import-all-data', async () => {
+  if (!overlayWin || overlayWin.isDestroyed()) return { canceled: true };
+  try {
+    const result = await showOpenDialogAboveOverlay({
+      title: '选择 FocusLocker 备份文件',
+      filters: [{ name: 'ZIP 备份文件', extensions: ['zip'] }],
+      properties: ['openFile']
+    });
+    if (result.canceled || !result.filePaths.length) return { canceled: true };
+    const buf = fs.readFileSync(result.filePaths[0]);
+    const r = await applyBackupZip(buf, { dataDir, baseDir, browserViewSession });
+    return { success: true, keys: r.keys, errors: r.errors };
+  } catch (e) {
+    logToFile('ERROR', '导入数据失败', e.message);
+    return { success: false, error: e.message };
+  }
+});
+
 // ========== 启动 ==========
 app.whenReady().then(async () => {
   if (isAutoStart) {
@@ -4887,6 +5030,28 @@ app.whenReady().then(async () => {
   }
   initFocusStats();
   browserViewSession = session.fromPartition(BROWSER_VIEW_PARTITION);
+  // 会话存储库自愈：若上次会话检测到持久分区库损坏（cookie 读取超时），
+  // 则备份并清空该分区的磁盘存储目录，让 Chromium 重建一份干净的，
+  // 消除 quota/service_worker 数据库 IO 错误反复出现（代价：cookie/localStorage 清空，需重新登录网站）。
+  try {
+    const corruptFlag = path.join(dataDir, 'partition-storage-corrupt.flag');
+    if (fs.existsSync(corruptFlag)) {
+      const partDir = path.join(dataDir, 'Partitions', BROWSER_VIEW_PARTITION);
+      if (fs.existsSync(partDir)) {
+        const bak = partDir + '.corrupt-bak-' + Date.now();
+        try {
+          fs.renameSync(partDir, bak);
+          logToFile('WARN', '检测到会话存储损坏标记，已备份并重建分区存储', partDir, '->', bak);
+        } catch (renameErr) {
+          try { fs.rmSync(partDir, { recursive: true, force: true }); } catch (_) {}
+          logToFile('WARN', '分区存储备份失败，已直接删除重建', renameErr.message);
+        }
+      }
+      try { fs.rmSync(corruptFlag, { force: true }); } catch (_) {}
+    }
+  } catch (healErr) {
+    logToFile('WARN', '分区存储自愈失败', healErr.message);
+  }
   // 限制持久 partition 磁盘 / 内存缓存大小，避免长时间运行后 cache 膨胀到数 GB
   try {
     const SESSION_CACHE_MAX_BYTES = 400 * 1024 * 1024; // 400MB 上限：对 3~5 个前台/常驻网站足够；超出 Chromium 自动 LRU 淘汰
@@ -4895,6 +5060,22 @@ app.whenReady().then(async () => {
     }
   } catch (err) {
     logToFile('WARN', '设置会话缓存上限失败', err.message);
+  }
+  // 屏蔽 BrowserView 分区的 STUN/TURN 探测：避免离线/无 DNS 时 Chromium 反复解析
+  // stun.l.google.com 等并打印「解析失败」噪声（专注场景无需 WebRTC，已通过
+  // --disable-features=WebRtc 全局禁用；此处对走 HTTP(S) 的 STUN/TURN 再兜一层拦截）。
+  try {
+    if (browserViewSession.webRequest && typeof browserViewSession.webRequest.onBeforeRequest === 'function') {
+      browserViewSession.webRequest.onBeforeRequest(
+        { urls: ['*://*.stun.*/*', '*://stun*/*', '*://*.turn.*/*', '*://turn*/*'] },
+        (details, callback) => {
+          if (/^https?:\/\/[^/]*\b(stun|turn)\b/i.test(details.url)) callback({ cancel: true });
+          else callback({});
+        }
+      );
+    }
+  } catch (err) {
+    logToFile('WARN', '注册 STUN/TURN 拦截失败', err.message);
   }
   // 每 4 小时清理一次代码缓存，避免 V8 code cache 随页面变化无限累积
   setInterval(() => {
@@ -5001,7 +5182,6 @@ app.on('before-quit', () => {
   }
   persistFocusStats();
   clearInterval(pomodoro.tickTimer);
-  clearInterval(pomodoro.persistTimer);
   clearInterval(killTimer);
   clearInterval(checkTimer);
   if (topTimer) clearInterval(topTimer);

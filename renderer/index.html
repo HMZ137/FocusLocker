@@ -23,19 +23,19 @@
     }
 
     :root {
-      --bg-body: #0a0a0f;
-      --bg-overlay: rgba(10, 10, 15, 0.65);
-      --bg-panel: rgba(18, 18, 26, 0.82);
-      --surface-01: rgba(255, 255, 255, 0.03);
-      --surface-02: rgba(255, 255, 255, 0.055);
-      --surface-03: rgba(255, 255, 255, 0.08);
-      --surface-hover: rgba(255, 255, 255, 0.10);
-      --glass-border: rgba(255, 255, 255, 0.08);
-      --glass-border-strong: rgba(255, 255, 255, 0.14);
+      --bg-body: #14151d;
+      --bg-overlay: rgba(20, 22, 32, 0.70);
+      --bg-panel: rgba(30, 32, 44, 0.90);
+      --surface-01: rgba(255, 255, 255, 0.06);
+      --surface-02: rgba(255, 255, 255, 0.10);
+      --surface-03: rgba(255, 255, 255, 0.15);
+      --surface-hover: rgba(255, 255, 255, 0.22);
+      --glass-border: rgba(255, 255, 255, 0.12);
+      --glass-border-strong: rgba(255, 255, 255, 0.22);
 
       --text-primary: #f8fafc;
-      --text-secondary: #94a3b8;
-      --text-muted: #64748b;
+      --text-secondary: #aab4c5;
+      --text-muted: #7e8aa0;
 
       --primary: #6366f1;
       --primary-bright: #818cf8;
@@ -83,8 +83,8 @@
       --code-meta: #56b6c2;
 
       /* 文件预览遮罩层背景与网格：跟随主题切换，避免写死暗色导致亮色下预览区仍发黑 */
-      --preview-bg: rgba(8, 8, 12, 0.96);
-      --preview-grid: rgba(255, 255, 255, 0.015);
+      --preview-bg: rgba(16, 17, 26, 0.96);
+      --preview-grid: rgba(255, 255, 255, 0.03);
     }
 
     /* ===== 亮色主题：html[data-theme="light"] 覆盖变量 =====
@@ -137,18 +137,76 @@
 
     /* 代码语法高亮：token 颜色统一走主题变量（--code-*），
        自动跟随 data-theme 在暗/亮配色间切换；移除原写死的 atom-one-dark 固定样式 */
-    .hljs-comment, .hljs-quote { color: var(--code-comment); font-style: italic; }
-    .hljs-keyword, .hljs-selector-tag, .hljs-literal, .hljs-doctag, .hljs-section,
-    .hljs-template-tag { color: var(--code-keyword); }
-    .hljs-string, .hljs-regexp, .hljs-addition, .hljs-selector-attr, .hljs-selector-pseudo { color: var(--code-string); }
-    .hljs-number, .hljs-symbol, .hljs-bullet, .hljs-link, .hljs-variable, .hljs-template-variable { color: var(--code-number); }
-    .hljs-title, .hljs-title.class_, .hljs-title.function_, .hljs-type { color: var(--code-title); }
-    .hljs-attr, .hljs-attribute, .hljs-name, .hljs-tag { color: var(--code-attr); }
-    .hljs-built_in, .hljs-builtin-name, .hljs-params, .hljs-property { color: var(--code-builtin); }
-    .hljs-meta, .hljs-selector-id, .hljs-selector-class { color: var(--code-meta); }
-    .hljs-deletion { color: var(--code-attr); }
-    .hljs-emphasis { font-style: italic; }
-    .hljs-strong { font-weight: bold; }
+    .hljs-comment,
+    .hljs-quote {
+      color: var(--code-comment);
+      font-style: italic;
+    }
+
+    .hljs-keyword,
+    .hljs-selector-tag,
+    .hljs-literal,
+    .hljs-doctag,
+    .hljs-section,
+    .hljs-template-tag {
+      color: var(--code-keyword);
+    }
+
+    .hljs-string,
+    .hljs-regexp,
+    .hljs-addition,
+    .hljs-selector-attr,
+    .hljs-selector-pseudo {
+      color: var(--code-string);
+    }
+
+    .hljs-number,
+    .hljs-symbol,
+    .hljs-bullet,
+    .hljs-link,
+    .hljs-variable,
+    .hljs-template-variable {
+      color: var(--code-number);
+    }
+
+    .hljs-title,
+    .hljs-title.class_,
+    .hljs-title.function_,
+    .hljs-type {
+      color: var(--code-title);
+    }
+
+    .hljs-attr,
+    .hljs-attribute,
+    .hljs-name,
+    .hljs-tag {
+      color: var(--code-attr);
+    }
+
+    .hljs-built_in,
+    .hljs-builtin-name,
+    .hljs-params,
+    .hljs-property {
+      color: var(--code-builtin);
+    }
+
+    .hljs-meta,
+    .hljs-selector-id,
+    .hljs-selector-class {
+      color: var(--code-meta);
+    }
+
+    .hljs-deletion {
+      color: var(--code-attr);
+    }
+
+    .hljs-emphasis {
+      font-style: italic;
+    }
+
+    .hljs-strong {
+      font-weight: bold;
+    }
 
     /* 亮色下滚动条改黑色半透明 */
     html[data-theme="light"] ::-webkit-scrollbar-track {
@@ -310,8 +368,7 @@
       color: var(--text-primary);
     }
 
-    /* 10) toast 通知容器：提高不透明度 */
-    html[data-theme="light"] #topNoticeContainer>div,
+    /* 10) 普通弹窗：亮色下提高不透明度 */
     html[data-theme="light"] #timerNotification,
     html[data-theme="light"] #closeBlockedModal,
     html[data-theme="light"] #cooldownNotice {
@@ -319,6 +376,401 @@
       border: 1px solid rgba(15, 23, 42, 0.12);
       box-shadow: 0 8px 32px rgba(15, 23, 42, 0.12);
     }
+
+    /* ===== 全局通知引擎 ===== */
+    /* Windows 11 风格悬浮通知：按设置出现在指定角落，浮在屏幕边缘内侧（不贴边） */
+    #toastLayer {
+      position: fixed;
+      inset: 0;
+      z-index: 9990;
+      pointer-events: none;
+    }
+    #toastLayer .corner {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      gap: 1vh;
+      max-width: 28vw;
+      padding: 0;          /* 容器自身不占 padding，留给卡片自身的 margin 表达"悬浮" */
+    }
+    /* 角落锚点：距屏幕边缘预留空气感（2.8vh / 2.4vw），不再贴边 */
+    #toastLayer .corner.tl { top: 2.8vh; left: 2.4vw; align-items: flex-start; }
+    #toastLayer .corner.tr { top: 2.8vh; right: 2.4vw; align-items: flex-end; }
+    #toastLayer .corner.bl { bottom: 2.8vh; left: 2.4vw; align-items: flex-start; flex-direction: column-reverse; }
+    #toastLayer .corner.br { bottom: 2.8vh; right: 2.4vw; align-items: flex-end; flex-direction: column-reverse; }
+
+    .toast-item {
+      pointer-events: auto;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.6vw;
+      width: 24vw;
+      max-width: 28vw;
+      min-width: 18vw;
+      padding: 1.4vh 1.4vw;
+      margin: 0.4vh 0;       /* 卡片之间留空气 */
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(22, 24, 38, 0.86), rgba(18, 20, 32, 0.78));
+      backdrop-filter: blur(22px) saturate(150%);
+      -webkit-backdrop-filter: blur(22px) saturate(150%);
+      border: 1px solid rgba(124, 140, 250, 0.22);
+      border-left: 3px solid var(--primary-bright);
+      box-shadow:
+        0 18px 48px rgba(0, 0, 0, 0.55),
+        0 2px 6px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      color: var(--text-primary);
+      font-size: 0.98vw;
+      font-weight: 500;
+      line-height: 1.5;
+      opacity: 0;
+      /* 入场：从屏幕外侧方向浮入（上/下角 + 略微缩放），不贴边滑入 */
+      transform: translateY(20px) scale(0.94);
+      transform-origin: center bottom;
+      transition:
+        opacity 0.36s var(--ease-out),
+        transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    #toastLayer .corner.tl .toast-item { transform-origin: center top; }
+    #toastLayer .corner.tr .toast-item { transform-origin: center top; }
+    .toast-item.show { opacity: 1; transform: translateY(0) scale(1); }
+    /* 离场：从屏幕外侧方向反向浮出 + 轻微淡出。
+       不再用 transform 顺移腾位（shifted-*）——flex column 自然堆叠更稳，
+       避免快速连发时 transition 互相打断导致位置错位。
+       离场方向按 corner 反向：上方向角（tl/tr）卡片向上滑出，下方向角（bl/br）向下滑出。 */
+    .toast-item.leaving { opacity: 0; transform: translateY(-24px) scale(0.92); transition: opacity 0.42s var(--ease-out), transform 0.5s cubic-bezier(0.55, 0, 0.85, 0.38); }
+    #toastLayer .corner.bl .toast-item.leaving,
+    #toastLayer .corner.br .toast-item.leaving { transform: translateY(24px) scale(0.92); }
+    .toast-item .t-icon { width: 1.3em; height: 1.3em; flex-shrink: 0; margin-top: 0.15em; color: var(--primary-bright); }
+    .toast-item .t-body { flex: 1; }
+    .toast-item .t-title { font-weight: 700; font-size: 0.82vw; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0.7; margin-bottom: 0.25vh; color: var(--primary-bright); }
+    .toast-item .t-close { cursor: pointer; opacity: 0.5; font-size: 1.1em; line-height: 1; padding: 0 0.2vw; flex-shrink: 0; }
+    .toast-item .t-close:hover { opacity: 1; }
+    /* 按类型整体染色：在毛玻璃底上叠加该类型淡色wash + 同色描边/光晕，一眼可辨 */
+    .toast-item.success {
+      background:
+        linear-gradient(135deg, rgba(52, 211, 153, 0.16), rgba(52, 211, 153, 0.05)),
+        linear-gradient(135deg, rgba(22, 24, 38, 0.86), rgba(18, 20, 32, 0.78));
+      border-color: rgba(52, 211, 153, 0.32);
+      border-left-color: var(--success);
+      box-shadow:
+        0 18px 48px rgba(0, 0, 0, 0.55),
+        0 2px 6px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 0 22px rgba(52, 211, 153, 0.18);
+    }
+    .toast-item.success .t-icon { color: var(--success); }
+    .toast-item.success .t-title { color: var(--success); }
+    .toast-item.warning {
+      background:
+        linear-gradient(135deg, rgba(251, 191, 36, 0.17), rgba(251, 191, 36, 0.05)),
+        linear-gradient(135deg, rgba(22, 24, 38, 0.86), rgba(18, 20, 32, 0.78));
+      border-color: rgba(251, 191, 36, 0.34);
+      border-left-color: var(--warning);
+      box-shadow:
+        0 18px 48px rgba(0, 0, 0, 0.55),
+        0 2px 6px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 0 22px rgba(251, 191, 36, 0.20);
+    }
+    .toast-item.warning .t-icon { color: var(--warning); }
+    .toast-item.warning .t-title { color: var(--warning); }
+    .toast-item.danger {
+      background:
+        linear-gradient(135deg, rgba(248, 113, 113, 0.19), rgba(248, 113, 113, 0.06)),
+        linear-gradient(135deg, rgba(22, 24, 38, 0.86), rgba(18, 20, 32, 0.78));
+      border-color: rgba(248, 113, 113, 0.36);
+      border-left-color: var(--danger);
+      box-shadow:
+        0 18px 48px rgba(0, 0, 0, 0.55),
+        0 2px 6px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 0 22px rgba(248, 113, 113, 0.22);
+    }
+    .toast-item.danger .t-icon { color: var(--danger); }
+    .toast-item.danger .t-title { color: var(--danger); }
+
+    /* 顶部胶囊通知（居中常驻风格）复用 .system-toast 类 */
+    .system-toast {
+      pointer-events: auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5vw;
+      padding: 0.7vh 2vw;
+      border-radius: 999px;
+      font-size: 1.05vw;
+      font-weight: 500;
+      white-space: nowrap;
+      background: linear-gradient(135deg, rgba(124,140,250,0.22), rgba(124,140,250,0.10));
+      border: 1px solid rgba(124,140,250,0.32);
+      color: #9AA7FF;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
+      opacity: 0;
+      transform: translateY(-12px);
+      transition: opacity 0.3s var(--ease-out), transform 0.3s var(--ease-out);
+    }
+    .system-toast.show { opacity: 1; transform: translateY(0); }
+    .system-toast .icon { width: 1.2em; height: 1.2em; }
+    .system-toast.tone-success { background: linear-gradient(135deg, rgba(52,211,153,0.20), rgba(52,211,153,0.08)); border-color: rgba(52,211,153,0.4); color: #34d399; }
+    .system-toast.tone-warning { background: linear-gradient(135deg, rgba(245,158,11,0.20), rgba(245,158,11,0.08)); border-color: rgba(245,158,11,0.4); color: #f59e0b; }
+    .system-toast.tone-danger { background: linear-gradient(135deg, rgba(248,113,113,0.20), rgba(248,113,113,0.08)); border-color: rgba(248,113,113,0.4); color: #f87171; }
+
+    /* ===== 通知中心 ===== */
+    /* 面板 header 内的通知中心按钮（替代已移除的网站面板铃铛），样式与截屏按钮一致 */
+    #panelNotifyBtn { position: relative; }
+    #panelNotifyBtn .nb-dot {
+      position: absolute;
+      top: -4px; right: -4px;
+      min-width: 15px; height: 15px;
+      padding: 0 3px;
+      border-radius: 999px;
+      background: var(--danger);
+      color: #fff;
+      font-size: 0.72vw;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      transform: scale(0);
+      transition: transform 0.25s var(--ease-out);
+      pointer-events: none;
+    }
+    #panelNotifyBtn .nb-dot.show { transform: scale(1); }
+
+    #notifyCenter {
+      position: fixed;
+      /* 默认（铃铛点击）为右上角气泡模式：位置不固定右侧、可变高度 */
+      top: 5.2vh; right: 1vw;
+      width: 26vw; min-width: 320px; max-width: 420px;
+      /* 可变高度：仅设兜底上限防止底部溢出，内容多时自适应 */
+      max-height: calc(100vh - 6.5vh);
+      display: flex; flex-direction: column;
+      background: linear-gradient(180deg, rgba(20, 22, 34, 0.96), rgba(15, 16, 26, 0.94));
+      backdrop-filter: blur(28px) saturate(140%);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-md);
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+      z-index: 29;
+      overflow: hidden;
+      opacity: 0; visibility: hidden;
+      transform: translateY(-8px) scale(0.98);
+      transform-origin: top right;
+      transition: opacity 0.25s var(--ease-out), transform 0.25s var(--ease-out), visibility 0.25s var(--ease-out);
+      pointer-events: auto;
+    }
+    #notifyCenter.open { opacity: 1; visibility: visible; transform: translateY(0) scale(1); }
+
+    /* 拖拽唤出（pinned）模式：固定 0.95 视口高度、居中偏右、带遮罩 */
+    #notifyCenter.pinned {
+      top: 50%; right: 2vw;
+      transform: translateY(-50%) scale(0.98);
+      width: 30vw; min-width: 340px; max-width: 460px;
+      z-index: 29;
+    }
+    #notifyCenter.pinned.open { transform: translateY(-50%) scale(1); }
+
+    /* ===== 通知中心：遮罩 + 右侧拖拽热区 ===== */
+    #ncScrim {
+      position: fixed; inset: 0;
+      background: rgba(8, 9, 16, 0.55);
+      backdrop-filter: blur(2px);
+      z-index: 28;
+      opacity: 0; visibility: hidden;
+      transition: opacity 0.25s var(--ease-out), visibility 0.25s var(--ease-out);
+      pointer-events: none;
+    }
+    #ncScrim.show { opacity: 1; visibility: visible; pointer-events: auto; }
+
+    /* 右侧边缘拖拽热区：明确的竖向抓手，默认隐藏，仅开启开关且 modern 视图时 .enabled 生效 */
+    .nc-edge-zone {
+      position: fixed; top: 0; right: 0;
+      width: 22px; height: 100vh;     /* 整条右边缘竖带：偏上偏下均可起拖，对齐主进程让出的 22px 边 */
+      z-index: 99;                     /* 提到最高层，确保可命中 */
+      cursor: ew-resize;
+      display: none;
+      touch-action: none;
+      pointer-events: auto;
+      background: transparent;
+      align-items: center; justify-content: center;
+    }
+    .nc-edge-zone.enabled { display: flex; }
+    .nc-edge-zone::after {
+      content: ''; position: relative;
+      width: 5px; height: 64px; border-radius: 999px;   /* 视觉 grip 居中显示，热区仍为整条竖带 */
+      background: rgba(124, 140, 250, 0.0);
+      transition: background 0.2s var(--ease-out);
+    }
+    .nc-edge-zone.enabled:hover::after,
+    .nc-edge-zone.dragging::after { background: rgba(124, 140, 250, 0.55); }
+    .nc-edge-zone.enabled:hover { background: rgba(124, 140, 250, 0.04); }
+    .nc-edge-zone.dragging { background: rgba(124, 140, 250, 0.06); }
+
+    html[data-theme="light"] #ncScrim { background: rgba(255, 255, 255, 0.45); }
+    html[data-theme="light"] #notifyCenter {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 249, 252, 0.97));
+    }
+
+    #notifyCenter .nc-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.4vh 1.2vw; border-bottom: 1px solid var(--glass-border);
+      flex-shrink: 0;
+    }
+    #notifyCenter .nc-title { font-size: 1.1vw; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 0.5vw; }
+    #notifyCenter .nc-actions { display: flex; gap: 0.4vw; }
+    #notifyCenter .nc-act { font-size: 0.82vw; color: var(--text-muted); background: var(--surface-02); border: 1px solid var(--glass-border); border-radius: 999px; padding: 0.35vh 0.8vw; cursor: pointer; }
+    #notifyCenter .nc-act:hover { color: var(--text-primary); background: var(--surface-03); }
+
+    #notifyCenter .nc-live {
+      padding: 1.2vh 1.2vw;
+      border-bottom: 1px solid var(--glass-border);
+      display: flex; flex-direction: column; gap: 0.8vh;
+      flex-shrink: 0;
+    }
+    #notifyCenter .nc-live-title { font-size: 0.82vw; text-transform: uppercase; letter-spacing: 0.06em; color: var(--primary-bright); opacity: 0.8; }
+    .nc-live-row { display: flex; align-items: center; gap: 0.6vw; font-size: 0.95vw; }
+    .nc-live-row .nc-lr-icon { width: 1.4em; height: 1.4em; flex-shrink: 0; }
+    .nc-live-row .nc-lr-label { color: var(--text-muted); flex: 1; }
+    .nc-live-row .nc-lr-value { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text-primary); }
+    .nc-live-row.urgent .nc-lr-value { color: var(--danger); }
+    .nc-live-empty { color: var(--text-muted); font-size: 0.9vw; font-style: italic; }
+
+    #notifyCenter .nc-filters { display: flex; gap: 0.4vw; padding: 0.8vh 1.2vw; flex-shrink: 0; flex-wrap: wrap; }
+    #notifyCenter .nc-filter { font-size: 0.8vw; color: var(--text-muted); background: var(--surface-01); border: 1px solid var(--glass-border); border-radius: 999px; padding: 0.3vh 0.8vw; cursor: pointer; }
+    #notifyCenter .nc-filter.active { color: var(--primary-bright); border-color: rgba(124,140,250,0.5); background: rgba(124,140,250,0.12); }
+
+    #notifyCenter .nc-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 0.6vh 0.8vw 1vh; display: flex; flex-direction: column; gap: 0.5vh; }
+    /* 深色主题滚动条：细、半透明靛蓝，悬停加深，贴合毛玻璃质感 */
+    #notifyCenter .nc-list { scrollbar-width: thin; scrollbar-color: rgba(124, 140, 250, 0.35) transparent; }
+    #notifyCenter .nc-list::-webkit-scrollbar { width: 8px; }
+    #notifyCenter .nc-list::-webkit-scrollbar-track { background: transparent; }
+    #notifyCenter .nc-list::-webkit-scrollbar-thumb { background: rgba(124, 140, 250, 0.30); border-radius: 8px; }
+    #notifyCenter .nc-list::-webkit-scrollbar-thumb:hover { background: rgba(124, 140, 250, 0.5); }
+
+    .nc-item {
+      display: flex; gap: 0.6vw; padding: 1vh 0.9vw;
+      border-radius: var(--radius-sm);
+      background: var(--surface-01);
+      border: 1px solid transparent;
+      border-left: 3px solid var(--glass-border);
+      cursor: default;
+    }
+    .nc-item:hover { background: var(--surface-02); }
+    .nc-item.unread { border-left-color: var(--primary-bright); }
+    .nc-item.success { border-left-color: var(--success); }
+    .nc-item.warning { border-left-color: var(--warning); }
+    .nc-item.danger { border-left-color: var(--danger); }
+    /* 常驻置顶项（如经典模式每日任务阻塞提醒）：暖色描边 + 轻微底色，与普通历史区分 */
+    .nc-item.pinned {
+      border-left-color: var(--warning, #f59e0b);
+      background: var(--warning-soft, rgba(245, 158, 11, 0.12));
+      box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.25);
+    }
+    .nc-item .nc-ic { width: 1.4em; height: 1.4em; flex-shrink: 0; margin-top: 0.2vh; color: var(--text-muted); }
+    .nc-item.success .nc-ic { color: var(--success); }
+    .nc-item.warning .nc-ic { color: var(--warning); }
+    .nc-item.danger .nc-ic { color: var(--danger); }
+    .nc-item .nc-main { flex: 1; min-width: 0; }
+    .nc-item .nc-text { font-size: 0.92vw; color: var(--text-primary); line-height: 1.45; word-break: break-word; }
+    .nc-item .nc-time { font-size: 0.76vw; color: var(--text-muted); margin-top: 0.3vh; }
+    .nc-item .nc-cat { font-size: 0.72vw; color: var(--primary-bright); opacity: 0.7; }
+    /* 单条标记已读按钮：未读时显示，hover 高亮，已读时隐藏以减小视觉噪音 */
+    .nc-item .nc-mark-read {
+      flex-shrink: 0;
+      align-self: flex-start;
+      margin-top: 0.2vh;
+      width: 1.6em; height: 1.6em;
+      display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 999px;
+      border: 1px solid var(--glass-border);
+      background: var(--surface-02);
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.95em;
+      line-height: 1;
+      transition: background 0.18s var(--ease-out), color 0.18s var(--ease-out), border-color 0.18s var(--ease-out), transform 0.18s var(--ease-out);
+    }
+    .nc-item .nc-mark-read:hover { background: rgba(124,140,250,0.18); color: var(--primary-bright); border-color: rgba(124,140,250,0.55); transform: scale(1.08); }
+    .nc-item .nc-mark-read:active { transform: scale(0.94); }
+    .nc-item.read .nc-mark-read { display: none; }
+    .nc-item.read { opacity: 0.62; }
+    .nc-empty { text-align: center; color: var(--text-muted); font-size: 0.92vw; padding: 3vh 1vw; font-style: italic; }
+
+    /* 亮色主题：通知中心 / toast / 胶囊 适配 */
+    html[data-theme="light"] #notifyCenter .nc-title,
+    html[data-theme="light"] #notifyCenter .nc-lr-value { color: var(--text-primary); }
+
+    /* toast 横幅：亮色下改用浅色卡片背景，保留左侧色条强调 */
+    html[data-theme="light"] .toast-item {
+      color: var(--text-primary);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.97), rgba(248, 250, 252, 0.94));
+      border: 1px solid rgba(15, 23, 42, 0.12);
+      border-left: 3px solid var(--primary-bright);
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    }
+    html[data-theme="light"] .toast-item .t-title { color: var(--primary-bright); }
+    /* 浅色主题：同样按类型整体染色，浅色wash + 同色描边/光晕 */
+    html[data-theme="light"] .toast-item.success {
+      background:
+        linear-gradient(135deg, rgba(16, 185, 129, 0.14), rgba(16, 185, 129, 0.04)),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.97), rgba(248, 250, 252, 0.94));
+      border-color: rgba(16, 185, 129, 0.30);
+      border-left-color: var(--success);
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 0 18px rgba(16, 185, 129, 0.16);
+    }
+    html[data-theme="light"] .toast-item.success .t-icon,
+    html[data-theme="light"] .toast-item.success .t-title { color: #059669; }
+    html[data-theme="light"] .toast-item.warning {
+      background:
+        linear-gradient(135deg, rgba(217, 119, 6, 0.13), rgba(217, 119, 6, 0.04)),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.97), rgba(248, 250, 252, 0.94));
+      border-color: rgba(217, 119, 6, 0.30);
+      border-left-color: #d97706;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 0 18px rgba(217, 119, 6, 0.15);
+    }
+    html[data-theme="light"] .toast-item.warning .t-icon,
+    html[data-theme="light"] .toast-item.warning .t-title { color: #d97706; }
+    html[data-theme="light"] .toast-item.danger {
+      background:
+        linear-gradient(135deg, rgba(220, 38, 38, 0.14), rgba(220, 38, 38, 0.04)),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.97), rgba(248, 250, 252, 0.94));
+      border-color: rgba(220, 38, 38, 0.30);
+      border-left-color: #dc2626;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 0 18px rgba(220, 38, 38, 0.16);
+    }
+    html[data-theme="light"] .toast-item.danger .t-icon,
+    html[data-theme="light"] .toast-item.danger .t-title { color: #dc2626; }
+    html[data-theme="light"] .toast-item .t-close { color: var(--text-muted); }
+
+    /* 顶部胶囊：亮色下加深配色以保证对比度 */
+    html[data-theme="light"] .system-toast {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.16), rgba(99, 102, 241, 0.08));
+      border-color: rgba(99, 102, 241, 0.38);
+      color: #4338ca;
+      box-shadow: 0 4px 18px rgba(15, 23, 42, 0.12);
+    }
+    html[data-theme="light"] .system-toast.tone-success { background: linear-gradient(135deg, rgba(16, 185, 129, 0.16), rgba(16, 185, 129, 0.07)); border-color: rgba(16, 185, 129, 0.4); color: #047857; }
+    html[data-theme="light"] .system-toast.tone-warning { background: linear-gradient(135deg, rgba(245, 158, 11, 0.18), rgba(245, 158, 11, 0.08)); border-color: rgba(245, 158, 11, 0.42); color: #b45309; }
+    html[data-theme="light"] .system-toast.tone-danger { background: linear-gradient(135deg, rgba(239, 68, 68, 0.18), rgba(239, 68, 68, 0.08)); border-color: rgba(239, 68, 68, 0.42); color: #b91c1c; }
+
+    /* 通知中心：亮色下浅色卡片 */
+    html[data-theme="light"] #notifyCenter {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96));
+      border-color: rgba(15, 23, 42, 0.12);
+      box-shadow: 0 18px 50px rgba(15, 23, 42, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    }
+    html[data-theme="light"] #notifyCenter .nc-live,
+    html[data-theme="light"] #notifyCenter .nc-head { border-color: rgba(15, 23, 42, 0.10); }
+    html[data-theme="light"] #notifyCenter .nc-live-title { color: var(--primary-bright); }
+    html[data-theme="light"] #notifyCenter .nc-filter { color: var(--text-muted); background: rgba(15, 23, 42, 0.04); border-color: rgba(15, 23, 42, 0.12); }
+    html[data-theme="light"] #notifyCenter .nc-filter.active { color: var(--primary-bright); border-color: rgba(99, 102, 241, 0.5); background: rgba(99, 102, 241, 0.12); }
+    html[data-theme="light"] .nc-item { background: rgba(15, 23, 42, 0.03); border-left-color: rgba(15, 23, 42, 0.12); }
+    html[data-theme="light"] .nc-item:hover { background: rgba(15, 23, 42, 0.06); }
+    html[data-theme="light"] .nc-item .nc-cat { color: var(--primary-bright); }
+    html[data-theme="light"] .nc-empty, html[data-theme="light"] .nc-live-empty { color: var(--text-muted); }
+
+    /* 通知中心列表滚动条：亮色下清晰可见 */
+    html[data-theme="light"] #notifyCenter .nc-list::-webkit-scrollbar { width: 8px; }
+    html[data-theme="light"] #notifyCenter .nc-list::-webkit-scrollbar-track { background: transparent; }
+    html[data-theme="light"] #notifyCenter .nc-list::-webkit-scrollbar-thumb { background: rgba(15, 23, 42, 0.22); border-radius: 8px; }
+    html[data-theme="light"] #notifyCenter .nc-list::-webkit-scrollbar-thumb:hover { background: rgba(15, 23, 42, 0.34); }
 
     /* 11) 下载/上传按钮等通用操作按钮：确保背景在亮底有对比度 */
     html[data-theme="light"] .action-btn-small,
@@ -408,6 +860,37 @@
       background: linear-gradient(135deg, rgba(99, 102, 241, 0.22), rgba(99, 102, 241, 0.08));
       border-color: rgba(99, 102, 241, 0.40);
       color: #4f46e5;
+      box-shadow: 0 4px 18px rgba(15, 23, 42, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    }
+    html[data-theme="light"] .test-notice strong { color: #312e81; }
+    html[data-theme="light"] #quickNotice {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.20), rgba(245, 158, 11, 0.08));
+      border-color: rgba(245, 158, 11, 0.42);
+      color: #b45309;
+    }
+    html[data-theme="light"] #instantNotice {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.20), rgba(16, 185, 129, 0.08));
+      border-color: rgba(16, 185, 129, 0.42);
+      color: #047857;
+    }
+
+    /* 顶部倒计时提示：亮色下改用浅色卡片，保留强调色条与边框 */
+    html[data-theme="light"] #countdownChip {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.94));
+      border-color: rgba(99, 102, 241, 0.45);
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.20);
+    }
+    html[data-theme="light"] #countdownChip .cd-title { color: #4f46e5; }
+    html[data-theme="light"] #countdownChip .cd-track { background: rgba(15, 23, 42, 0.10); }
+    html[data-theme="light"] #cooldownNotice {
+      background: var(--danger-soft);
+      border-color: rgba(239, 68, 68, 0.40);
+      color: #dc2626;
+    }
+    html[data-theme="light"] #extendInfo {
+      background: rgba(15, 23, 42, 0.06);
+      border-color: rgba(245, 158, 11, 0.42);
+      color: #b45309;
     }
 
     /* 15) 文件附加栏/已附加标签：亮底下颜色适配 */
@@ -423,9 +906,11 @@
     html[data-theme="light"] .thought-header.searching .arrow {
       color: #b45309;
     }
+
     html[data-theme="light"] .thought-header.searching .badge {
       background: rgba(245, 158, 11, 0.18);
     }
+
     html[data-theme="light"] .msg-search-tag {
       background: rgba(16, 185, 129, 0.12);
       border-color: rgba(16, 185, 129, 0.25);
@@ -800,7 +1285,7 @@
     body.ambient-active .overlay {
       background:
         radial-gradient(1200px 800px at 10% 10%, rgba(99, 102, 241, 0.08), transparent 60%),
-        rgba(8, 8, 12, 0.94);
+        rgba(16, 17, 25, 0.94);
     }
 
     .cover-layer {
@@ -903,9 +1388,74 @@
       flex-direction: column;
       align-items: center;
       gap: 1vh;
-      z-index: 25;
+      z-index: 40;
       pointer-events: none;
+      transition: top 0.3s var(--ease-out);
     }
+
+    /* 胶囊折叠区（仅胶囊模式下面板高 ≥ 0.85 时显示，嵌在面板 header 内 #agentPanelClock 左侧）
+       仅展示「实时未完成」的胶囊消息，5s 自动消失后即并入通知中心（history），不长期保留本地历史 */
+    .agent-header-capsule {
+      display: none;
+      align-items: center;
+      gap: 0.45vw;
+      padding: 0.3vh 0.6vw;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.14));
+      font-size: 0.92vw;
+      color: var(--text-secondary);
+      max-width: 36vw;
+      min-width: 0;
+      transition: opacity 0.35s var(--ease-out);
+    }
+    .agent-header-capsule.fading { opacity: 0; }
+    .agent-header-capsule .ahc-ticker {
+      flex: 1; min-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      line-height: 1.2;
+    }
+    .agent-header-capsule .ahc-count {
+      flex: 0 0 auto;
+      opacity: 0.62;
+      font-size: 0.78vw;
+      padding-left: 0.3vw;
+      border-left: 1px solid var(--glass-border, rgba(255, 255, 255, 0.14));
+      padding-left: 0.5vw;
+    }
+    .agent-header-capsule .ahc-nav {
+      flex: 0 0 auto;
+      width: 22px; height: 22px;
+      background: transparent;
+      border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.14));
+      color: var(--text-secondary);
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 0.95vw;
+      line-height: 1;
+      padding: 0;
+      transition: background 0.18s var(--ease-out), color 0.18s var(--ease-out);
+    }
+    .agent-header-capsule .ahc-nav:hover { background: rgba(255, 255, 255, 0.08); color: var(--text-primary); }
+    html[data-theme="light"] .agent-header-capsule { background: rgba(255, 255, 255, 0.6); }
+    html[data-theme="light"] .agent-header-capsule .ahc-nav:hover { background: rgba(15, 23, 42, 0.06); }
+
+    /* 面板 header 右上角的截屏按钮 */
+    .agent-cap-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 32px; height: 32px;
+      background: transparent;
+      border: 1px solid var(--glass-border, rgba(255,255,255,0.14));
+      color: var(--text-secondary);
+      border-radius: 9px;
+      cursor: pointer;
+      padding: 0;
+    }
+    .agent-cap-btn:hover { background: var(--surface-03, rgba(255,255,255,0.08)); color: var(--text-primary); }
+    .agent-cap-btn svg { width: 1.1em; height: 1.1em; }
 
     #cooldownNotice {
       display: none;
@@ -1544,6 +2094,21 @@
     .pinned-todo-item.completed span {
       text-decoration: line-through;
       color: var(--text-muted);
+    }
+
+    /* 固定待办横幅：亮色模式下改用浅色卡片，避免暗色渐变在亮底上对比度不足 */
+    html[data-theme="light"] .pinned-todos {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 252, 0.88));
+      border-color: rgba(245, 158, 11, 0.40);
+      box-shadow: 0 12px 36px rgba(15, 23, 42, 0.16);
+    }
+    html[data-theme="light"] .pinned-todo-item {
+      background: rgba(255, 255, 255, 0.72);
+      border-color: rgba(15, 23, 42, 0.12);
+      color: #1f2937;
+    }
+    html[data-theme="light"] .pinned-todo-item.completed span {
+      color: #6b7280;
     }
 
     /* 每日任务面板 */
@@ -2222,6 +2787,77 @@
       color: var(--text-muted);
     }
 
+    /* 命令补全浮层（QQ 风格：暗色卡片 + 当前项高亮） */
+    .agent-input-area { position: relative; }
+    .cmd-palette {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: calc(100% + 6px);            /* 浮在 textarea 上方 */
+      max-height: 18rem;
+      overflow-y: auto;
+      z-index: 60;
+      padding: 4px;
+      border-radius: 10px;
+      background: rgba(20, 22, 30, 0.92);
+      backdrop-filter: blur(14px) saturate(140%);
+      -webkit-backdrop-filter: blur(14px) saturate(140%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.3);
+      animation: cmdPaletteIn 0.12s ease-out;
+    }
+    html[data-theme="light"] .cmd-palette {
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18), 0 2px 6px rgba(15, 23, 42, 0.1);
+    }
+    @keyframes cmdPaletteIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .cmd-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 6px 10px;
+      border-radius: 7px;
+      cursor: pointer;
+      user-select: none;
+      color: #e5e7eb;
+      transition: background 0.08s ease;
+    }
+    html[data-theme="light"] .cmd-item { color: #1f2937; }
+    .cmd-item:hover { background: rgba(255, 255, 255, 0.06); }
+    html[data-theme="light"] .cmd-item:hover { background: rgba(0, 0, 0, 0.05); }
+    .cmd-item.active {
+      background: rgba(99, 102, 241, 0.28);
+      box-shadow: inset 0 0 0 1px rgba(129, 140, 248, 0.45);
+    }
+    html[data-theme="light"] .cmd-item.active {
+      background: rgba(99, 102, 241, 0.18);
+      box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.35);
+    }
+    .cmd-item .cmd-name {
+      font-family: 'JetBrains Mono', 'Consolas', monospace;
+      font-size: 13px;
+      font-weight: 600;
+      color: #a5b4fc;
+      flex-shrink: 0;
+      min-width: 90px;
+    }
+    html[data-theme="light"] .cmd-item .cmd-name { color: #4f46e5; }
+    .cmd-item .cmd-desc {
+      font-size: 12px;
+      color: rgba(229, 231, 235, 0.72);
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    html[data-theme="light"] .cmd-item .cmd-desc { color: rgba(31, 41, 55, 0.7); }
+    .cmd-item.active .cmd-desc { color: rgba(229, 231, 235, 0.95); }
+    html[data-theme="light"] .cmd-item.active .cmd-desc { color: rgba(31, 41, 55, 0.95); }
+
     .input-icon-btn {
       background: none;
       border: none;
@@ -2370,12 +3006,15 @@
     .thought-header.searching .badge {
       color: #f59e0b;
     }
+
     .thought-header.searching .badge {
       background: rgba(245, 158, 11, 0.16);
     }
+
     .thought-header.searching .arrow {
       color: #f59e0b;
     }
+
     .search-status {
       color: var(--text-muted);
       font-size: 0.9vw;
@@ -2398,6 +3037,7 @@
       letter-spacing: 0.02em;
       flex-shrink: 0;
     }
+
     .msg-search-tag .icon {
       width: 0.85vw;
       height: 0.85vw;
@@ -3247,6 +3887,31 @@
       color: var(--text-muted);
     }
 
+    .backup-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.5vh 1.2vw;
+      margin: 0.4vh 0 0.8vh;
+    }
+    .backup-check {
+      display: flex;
+      align-items: center;
+      gap: 0.5em;
+      font-size: 0.95vw;
+      color: var(--text-secondary);
+      cursor: pointer;
+      user-select: none;
+    }
+    .backup-check input { width: auto; }
+    .backup-row { margin-bottom: 0.8vh; }
+    .backup-msg {
+      margin-top: 0.8vh;
+      font-size: 0.85vw;
+      color: var(--text-muted);
+      word-break: break-all;
+      line-height: 1.5;
+    }
+
     .config-card .setting-row input[type="text"],
     .config-card .setting-row input[type="password"] {
       flex: 1;
@@ -3395,6 +4060,17 @@
 
     #agentPageFiles {
       position: relative;
+    }
+
+    /* 文件面板：让 #fileViewMain 继承父级 flex 高度并设置 min-height:0，
+       使内部 .page-scroll 拿到明确的 flex:1 高度后才出现溢出滚动条；
+       否则 fileview-list 高度自由撑出面板，scroll 失效 */
+    #fileViewMain {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1.2vh;
     }
 
     .fileview-dirs {
@@ -3801,6 +4477,8 @@
       min-height: 0;
       min-width: 0;
       background: var(--surface-01);
+      position: relative; /* 给 video / 字幕层提供 z-index 上下文，避免 Chromium 内部控件层冒泡吃掉下层自定义按钮的 click */
+      overflow: hidden;
     }
 
     .fv-media-stage video {
@@ -3809,6 +4487,11 @@
       width: 100%;
       height: 100%;
       object-fit: contain;
+      display: block;
+      /* 视频元素自己接管 pointer events 时，鼠标点击"穿透"不到下方的自定义控件。
+         让 video 不接收指针事件，所有交互通过 .fv-media-controls；用户改用播放/暂停按钮触发。 */
+      pointer-events: none;
+      -webkit-user-drag: none;
     }
 
     .fv-media-stage audio {
@@ -3824,6 +4507,8 @@
       background: var(--surface-02);
       border-top: 1px solid var(--glass-border);
       flex-shrink: 0;
+      position: relative; /* 显式 stacking context，确保控件按钮永远在视频层之上 */
+      z-index: 2;
     }
 
     .fv-media-btn {
@@ -4005,7 +4690,7 @@
       min-width: 220px;
       padding: 0.7vh 1.6vw 0.9vh;
       border-radius: var(--radius-md);
-      background: linear-gradient(180deg, rgba(10, 10, 15, 0.85), rgba(10, 10, 15, 0.60));
+      background: linear-gradient(180deg, rgba(20, 21, 29, 0.85), rgba(20, 21, 29, 0.58));
       backdrop-filter: blur(16px);
       border: 1px solid rgba(99, 102, 241, 0.35);
       box-shadow: var(--shadow-lg);
@@ -4054,22 +4739,6 @@
 
     #countdownChip.urgent .cd-fill {
       background: linear-gradient(90deg, #f97316, #ef4444);
-    }
-
-    /* ===== 倒计时：里程碑横幅（位于 #topNoticeContainer 内） ===== */
-    #countdownMilestoneBanner {
-      display: none;
-      background: linear-gradient(135deg, rgba(251, 146, 60, 0.20), rgba(251, 146, 60, 0.08));
-      border: 1px solid rgba(251, 146, 60, 0.40);
-      color: #FDBA74;
-      padding: 0.7vh 2vw;
-      border-radius: var(--radius-pill);
-      font-size: 1.1vw;
-      font-weight: 500;
-      box-shadow: var(--shadow-sm);
-      white-space: nowrap;
-      align-items: center;
-      gap: 0.5vw;
     }
 
     /* ===== 倒计时：专注面板卡片 ===== */
@@ -4227,10 +4896,12 @@
       visibility: hidden;
       transition: opacity 0.4s var(--ease-out), visibility 0.4s var(--ease-out);
     }
+
     .daily-top-bar.show {
       opacity: 1;
       visibility: visible;
     }
+
     .daily-top-bar-fill {
       height: 100%;
       width: 0%;
@@ -4238,10 +4909,12 @@
       box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
       transition: width 0.5s var(--ease-out), background 0.4s var(--ease-out), box-shadow 0.4s var(--ease-out);
     }
+
     .daily-top-bar.met .daily-top-bar-fill {
       background: var(--success, #34d399);
       box-shadow: 0 0 10px rgba(52, 211, 153, 0.55);
     }
+
     .daily-top-bar-marker {
       position: absolute;
       top: 0;
@@ -4253,12 +4926,13 @@
       opacity: 0.85;
     }
 
-    /* 锁屏时段已结束但每日任务未达标：常驻提示条 */
+    /* 锁屏时段已结束但每日任务未达标：常驻提示条（顶部，位于进度条下方） */
     .daily-task-banner {
       position: fixed;
-      bottom: 1.6vh;
+      top: calc(6px + 1.2vh);
+      /* 6px 为顶部进度条高度，错开显示 */
       left: 50%;
-      transform: translateX(-50%) translateY(120%);
+      transform: translateX(-50%) translateY(-160%);
       display: flex;
       align-items: center;
       gap: 0.6vw;
@@ -4276,208 +4950,273 @@
       box-shadow: var(--shadow-md);
       transition: opacity 0.3s var(--ease-out), transform 0.3s var(--ease-out), visibility 0.3s var(--ease-out);
     }
+
     .daily-task-banner.show {
       opacity: 1;
       visibility: visible;
       pointer-events: auto;
       transform: translateX(-50%) translateY(0);
     }
+
+    /* 经典（左右）布局：右侧 40% 是网站 BrowserView（渲染层级高于本页），
+       提示条居中于左侧 60% 区域，避免右半边被盖住 */
+    body.layout-legacy .daily-task-banner {
+      left: 30%;
+    }
+
     .daily-task-banner .icon {
       width: 1.3em;
       height: 1.3em;
       color: var(--warning, #f59e0b);
       flex-shrink: 0;
     }
-.userstyle-modal {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.userstyle-modal-mask {
-  position: absolute;
-  inset: 0;
-  background: rgba(5, 7, 16, 0.55);
-  backdrop-filter: blur(6px);
-}
-.userstyle-modal-panel {
-  position: relative;
-  width: min(56vw, 900px);
-  max-height: 80vh;
-  background: var(--panel-bg, linear-gradient(160deg, rgba(255,255,255,0.96), rgba(248,249,252,0.96)));
-  border: 1px solid rgba(100, 116, 139, 0.18);
-  border-radius: var(--radius-md, 18px);
-  box-shadow: var(--shadow-xl, 0 24px 64px rgba(15, 23, 42, 0.22));
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  color: #1e293b;
-}
-.userstyle-modal-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1.2vh 1.6vw;
-  border-bottom: 1px solid rgba(148,163,184,0.18);
-}
-.userstyle-modal-title-wrap {
-  display: flex;
-  align-items: center;
-  gap: 0.7vw;
-  font-weight: 700;
-  font-size: 1.1vw;
-  color: #0f172a;
-}
-.userstyle-modal-close {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  font-size: 1.1em;
-  color: #64748b;
-  padding: 4px 8px;
-  border-radius: 10px;
-}
-.userstyle-modal-close:hover { background: rgba(148,163,184,0.18); color: #0f172a; }
-.userstyle-enabled-toggle {
-  display: inline-flex; align-items: center; gap: 0.4em;
-  margin-left: 1vw; padding: 0.35vh 0.7vw;
-  border-radius: 999px;
-  background: rgba(148,163,184,0.14);
-  cursor: pointer;
-  font-size: 0.9vw;
-  color: #334155;
-  user-select: none;
-  font-weight: 500;
-}
-.userstyle-enabled-toggle input { display: none; }
-.userstyle-enabled-toggle .slider {
-  width: 2em; height: 1em;
-  background: #cbd5e1;
-  border-radius: 999px;
-  position: relative;
-  transition: background .2s;
-}
-.userstyle-enabled-toggle .slider::after {
-  content: '';
-  position: absolute;
-  top: 1px; left: 1px;
-  width: calc(1em - 2px); height: calc(1em - 2px);
-  border-radius: 50%;
-  background: #fff;
-  transition: left .2s;
-  box-shadow: 0 1px 2px rgba(15,23,42,0.2);
-}
-.userstyle-enabled-toggle input:checked + .slider {
-  background: linear-gradient(135deg, #8b5cf6, #f97316);
-}
-.userstyle-enabled-toggle input:checked + .slider::after { left: calc(1em + 1px); }
-.userstyle-enabled-toggle.inline {
-  padding: 0.15em 0.3em;
-  background: rgba(148,163,184,0.1);
-  margin-left: 0;
-  font-size: 0.85vw;
-}
-.userstyle-enabled-toggle.inline .lbl { display: none; }
 
-.userstyle-modal-sub {
-  padding: 0.8vh 1.6vw 0 1.6vw;
-  font-size: 0.88vw;
-  color: #64748b;
-  line-height: 1.6;
-}
-.userstyle-modal-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 1.2vh 1.6vw 1.6vh 1.6vw;
-  display: flex;
-  flex-direction: column;
-  gap: 1.2vh;
-}
-.var-row {
-  display: grid;
-  grid-template-columns: 28% 1fr;
-  gap: 1vw;
-  align-items: center;
-  padding: 0.8vh 0.9vw;
-  background: rgba(241, 245, 249, 0.7);
-  border-radius: var(--radius-sm, 12px);
-  border: 1px solid rgba(203,213,225,0.4);
-}
-.var-row-label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3vh;
-  min-width: 0;
-}
-.var-row-label .vname {
-  font-weight: 600;
-  font-size: 0.95vw;
-  color: #0f172a;
-}
-.var-row-label .vsub {
-  font-size: 0.78vw;
-  color: #94a3b8;
-  font-family: ui-monospace, Consolas, Monaco, monospace;
-  word-break: break-all;
-}
-.var-row input[type="text"], .var-row select, .var-row textarea, .var-row input[type="number"] {
-  width: 100%;
-  padding: 0.7vh 0.8vw;
-  border: 1px solid #cbd5e1;
-  border-radius: 10px;
-  background: #fff;
-  font-size: 0.92vw;
-  color: #0f172a;
-  outline: none;
-  transition: border .18s, box-shadow .18s;
-  font-family: inherit;
-}
-.var-row textarea { min-height: 8vh; resize: vertical; }
-.var-row input:focus, .var-row select:focus, .var-row textarea:focus {
-  border-color: #8b5cf6;
-  box-shadow: 0 0 0 3px rgba(139,92,246,0.18);
-}
-.var-range-wrap {
-  display: flex; align-items: center; gap: 0.7vw;
-}
-.var-range-wrap input[type="range"] {
-  flex: 1;
-  accent-color: #8b5cf6;
-}
-.var-range-wrap .var-range-val {
-  min-width: 3em;
-  text-align: right;
-  font-family: ui-monospace, Consolas, monospace;
-  font-size: 0.9vw;
-  color: #1e293b;
-  font-weight: 600;
-}
-.var-color-wrap {
-  display: flex; align-items: center; gap: 0.7vw;
-}
-.var-color-wrap input[type="color"] {
-  width: 2.6vw;
-  height: 2.2vw;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  background: #fff;
-  padding: 2px;
-  cursor: pointer;
-}
-.var-color-wrap input[type="text"] {
-  flex: 1;
-  font-family: ui-monospace, Consolas, monospace;
-}
-.userstyle-modal-foot {
-  display: flex;
-  align-items: center;
-  gap: 0.6vw;
-  padding: 1vh 1.6vw;
-  border-top: 1px solid rgba(148,163,184,0.18);
-  background: rgba(248, 249, 252, 0.6);
-}
+    .userstyle-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .userstyle-modal-mask {
+      position: absolute;
+      inset: 0;
+      background: rgba(5, 7, 16, 0.55);
+      backdrop-filter: blur(6px);
+    }
+
+    .userstyle-modal-panel {
+      position: relative;
+      width: min(56vw, 900px);
+      max-height: 80vh;
+      background: var(--panel-bg, linear-gradient(160deg, rgba(255, 255, 255, 0.96), rgba(248, 249, 252, 0.96)));
+      border: 1px solid rgba(100, 116, 139, 0.18);
+      border-radius: var(--radius-md, 18px);
+      box-shadow: var(--shadow-xl, 0 24px 64px rgba(15, 23, 42, 0.22));
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      color: #1e293b;
+    }
+
+    .userstyle-modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.2vh 1.6vw;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+    }
+
+    .userstyle-modal-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.7vw;
+      font-weight: 700;
+      font-size: 1.1vw;
+      color: #0f172a;
+    }
+
+    .userstyle-modal-close {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 1.1em;
+      color: #64748b;
+      padding: 4px 8px;
+      border-radius: 10px;
+    }
+
+    .userstyle-modal-close:hover {
+      background: rgba(148, 163, 184, 0.18);
+      color: #0f172a;
+    }
+
+    .userstyle-enabled-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4em;
+      margin-left: 1vw;
+      padding: 0.35vh 0.7vw;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.14);
+      cursor: pointer;
+      font-size: 0.9vw;
+      color: #334155;
+      user-select: none;
+      font-weight: 500;
+    }
+
+    .userstyle-enabled-toggle input {
+      display: none;
+    }
+
+    .userstyle-enabled-toggle .slider {
+      width: 2em;
+      height: 1em;
+      background: #cbd5e1;
+      border-radius: 999px;
+      position: relative;
+      transition: background .2s;
+    }
+
+    .userstyle-enabled-toggle .slider::after {
+      content: '';
+      position: absolute;
+      top: 1px;
+      left: 1px;
+      width: calc(1em - 2px);
+      height: calc(1em - 2px);
+      border-radius: 50%;
+      background: #fff;
+      transition: left .2s;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.2);
+    }
+
+    .userstyle-enabled-toggle input:checked+.slider {
+      background: linear-gradient(135deg, #8b5cf6, #f97316);
+    }
+
+    .userstyle-enabled-toggle input:checked+.slider::after {
+      left: calc(1em + 1px);
+    }
+
+    .userstyle-enabled-toggle.inline {
+      padding: 0.15em 0.3em;
+      background: rgba(148, 163, 184, 0.1);
+      margin-left: 0;
+      font-size: 0.85vw;
+    }
+
+    .userstyle-enabled-toggle.inline .lbl {
+      display: none;
+    }
+
+    .userstyle-modal-sub {
+      padding: 0.8vh 1.6vw 0 1.6vw;
+      font-size: 0.88vw;
+      color: #64748b;
+      line-height: 1.6;
+    }
+
+    .userstyle-modal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.2vh 1.6vw 1.6vh 1.6vw;
+      display: flex;
+      flex-direction: column;
+      gap: 1.2vh;
+    }
+
+    .var-row {
+      display: grid;
+      grid-template-columns: 28% 1fr;
+      gap: 1vw;
+      align-items: center;
+      padding: 0.8vh 0.9vw;
+      background: rgba(241, 245, 249, 0.7);
+      border-radius: var(--radius-sm, 12px);
+      border: 1px solid rgba(203, 213, 225, 0.4);
+    }
+
+    .var-row-label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3vh;
+      min-width: 0;
+    }
+
+    .var-row-label .vname {
+      font-weight: 600;
+      font-size: 0.95vw;
+      color: #0f172a;
+    }
+
+    .var-row-label .vsub {
+      font-size: 0.78vw;
+      color: #94a3b8;
+      font-family: ui-monospace, Consolas, Monaco, monospace;
+      word-break: break-all;
+    }
+
+    .var-row input[type="text"],
+    .var-row select,
+    .var-row textarea,
+    .var-row input[type="number"] {
+      width: 100%;
+      padding: 0.7vh 0.8vw;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      background: #fff;
+      font-size: 0.92vw;
+      color: #0f172a;
+      outline: none;
+      transition: border .18s, box-shadow .18s;
+      font-family: inherit;
+    }
+
+    .var-row textarea {
+      min-height: 8vh;
+      resize: vertical;
+    }
+
+    .var-row input:focus,
+    .var-row select:focus,
+    .var-row textarea:focus {
+      border-color: #8b5cf6;
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.18);
+    }
+
+    .var-range-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.7vw;
+    }
+
+    .var-range-wrap input[type="range"] {
+      flex: 1;
+      accent-color: #8b5cf6;
+    }
+
+    .var-range-wrap .var-range-val {
+      min-width: 3em;
+      text-align: right;
+      font-family: ui-monospace, Consolas, monospace;
+      font-size: 0.9vw;
+      color: #1e293b;
+      font-weight: 600;
+    }
+
+    .var-color-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.7vw;
+    }
+
+    .var-color-wrap input[type="color"] {
+      width: 2.6vw;
+      height: 2.2vw;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      background: #fff;
+      padding: 2px;
+      cursor: pointer;
+    }
+
+    .var-color-wrap input[type="text"] {
+      flex: 1;
+      font-family: ui-monospace, Consolas, monospace;
+    }
+
+    .userstyle-modal-foot {
+      display: flex;
+      align-items: center;
+      gap: 0.6vw;
+      padding: 1vh 1.6vw;
+      border-top: 1px solid rgba(148, 163, 184, 0.18);
+      background: rgba(248, 249, 252, 0.6);
+    }
 
     .close-blocked-btn:hover {
       transform: translateY(-1px);
@@ -4671,6 +5410,34 @@
       display: none !important;
     }
 
+    /* 设置面板：查看验证码（收纳区） */
+    .vc-block {
+      background: rgba(251, 191, 36, 0.06);
+      border: 1px solid rgba(251, 191, 36, 0.18);
+      border-radius: 0.8vw;
+      padding: 1.2vh 1vw;
+      gap: 1vh;
+    }
+    .vc-block .more-title {
+      color: #fbbf24;
+      text-align: left;
+    }
+    .vc-desc {
+      margin: 0;
+      font-size: 0.85vw;
+      line-height: 1.5;
+      color: var(--text-secondary);
+    }
+    .vc-desc b {
+      color: #fcd34d;
+    }
+    .vc-block button:disabled,
+    .vc-block button.disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      filter: grayscale(0.4);
+    }
+
     .is-test-mode #exitBtn,
     .is-test-mode #topBtn {
       display: inline-flex !important;
@@ -4795,12 +5562,19 @@
       align-items: center;
       justify-content: center;
       gap: 1.4vh;
+      /* 占位态（无网页）才显示边框/背景/居中文案；有网页时透明铺满红色框区域 */
       border-radius: var(--radius-md);
-      border: 1px dashed var(--glass-border-strong);
+      border: 1px dashed transparent;
+      background: transparent;
+      overflow: hidden;
+      transition: background 0.3s var(--ease-out), border-color 0.3s var(--ease-out);
+    }
+    /* 仅有占位（尚未加载网页）时展示引导框 */
+    body:not(.site-active) .site-stage {
+      border-color: var(--glass-border-strong);
       background:
         radial-gradient(640px 400px at 50% 42%, rgba(99, 102, 241, 0.10), transparent 70%),
-        rgba(10, 10, 15, 0.55);
-      overflow: hidden;
+        rgba(20, 21, 29, 0.55);
     }
 
     .site-stage .icon {
@@ -4822,7 +5596,7 @@
     }
 
     body.site-view .agent-panel {
-      background: linear-gradient(180deg, rgba(10, 10, 15, 0.90), rgba(10, 10, 15, 0.50) 32%, rgba(10, 10, 15, 0.12) 68%, rgba(10, 10, 15, 0.04));
+      background: linear-gradient(180deg, rgba(20, 21, 29, 0.88), rgba(20, 21, 29, 0.46) 32%, rgba(20, 21, 29, 0.10) 68%, rgba(20, 21, 29, 0.03));
       backdrop-filter: blur(18px);
     }
 
@@ -4830,10 +5604,29 @@
       margin-bottom: 1vh;
     }
 
+    /* 仅网站面板下隐藏通知中心按钮（避免在纯浏览场景下暴露通知中心入口，
+       通知仍正常写入历史，仅铃铛入口在网站面板不显示） */
+    body.site-view #panelNotifyBtn { display: none !important; }
+
+    /* 网站面板下：仅在占位态保留引导框描边（有网页时透明刷满，已由上方 body:not(.site-active) 控制） */
     body.site-view .site-page .site-stage {
       border-style: solid;
       border-color: rgba(99, 102, 241, 0.25);
-      background: rgba(10, 10, 15, 0.28);
+    }
+    body.site-view:not(.site-active) .site-page .site-stage {
+      background: rgba(20, 21, 29, 0.26);
+    }
+    /* 占位引导容器：有网页（body.site-active）时整体隐藏，露出透出的 BrowserView */
+    .site-stage-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1.4vh;
+      text-align: center;
+    }
+    body.site-active .site-stage-placeholder {
+      display: none;
     }
 
     /* ===== 面板高度可调（顶部拖拽手柄） ===== */
@@ -4892,7 +5685,7 @@
       flex: 4;
       border-left: 1px solid var(--glass-border);
       z-index: 2;
-      background: rgba(0, 0, 0, 0.22);
+      background: rgba(12, 13, 20, 0.30);
       backdrop-filter: blur(6px);
       min-width: 0;
       position: relative;
@@ -4965,10 +5758,11 @@
   </style>
 
   <!-- 代码高亮配色改为随主题切换（见 <style> 中 .hljs-* 规则），不再加载写死的 atom-one-dark -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.0/marked.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+  <!-- marked / highlight.js / KaTeX 已本地化到 assets/vendor（消除首启网络依赖，离线可用） -->
+  <link rel="stylesheet" href="../assets/vendor/katex.min.css">
+  <script src="../assets/vendor/marked.min.js"></script>
+  <script src="../assets/vendor/highlight.min.js"></script>
+  <script src="../assets/vendor/katex.min.js"></script>
 </head>
 
 <body>
@@ -4980,256 +5774,51 @@
   </div>
   <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden">
     <defs>
-      <symbol id="icon-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <rect x="5" y="11" width="14" height="10" rx="2" />
-        <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-      </symbol>
-      <symbol id="icon-unlock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <rect x="5" y="11" width="14" height="10" rx="2" />
-        <path d="M15 11V7a4 4 0 0 0-8 0" />
-      </symbol>
-      <symbol id="icon-todo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <rect x="6" y="4" width="12" height="16" rx="2" />
-        <path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1" />
-        <line x1="9" y1="10" x2="15" y2="10" />
-        <line x1="9" y1="14" x2="15" y2="14" />
-        <line x1="9" y1="18" x2="13" y2="18" />
-      </symbol>
-      <symbol id="icon-export" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
-        <polyline points="7 11 12 16 17 11" />
-        <line x1="12" y1="16" x2="12" y2="4" />
-      </symbol>
-      <symbol id="icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <line x1="6" y1="6" x2="18" y2="18" />
-        <line x1="18" y1="6" x2="6" y2="18" />
-      </symbol>
-      <symbol id="icon-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <line x1="12" y1="5" x2="12" y2="19" />
-        <line x1="5" y1="12" x2="19" y2="12" />
-      </symbol>
-      <symbol id="icon-test" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <path d="M9 3h6" />
-        <path d="M10 4v6l-4 9a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l-4-9V4" />
-        <circle cx="12" cy="10" r="1.5" fill="currentColor" stroke="none" />
-      </symbol>
-      <symbol id="icon-quick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <polygon points="13 2 4 14 11 14 9 22 20 10 13 10 13 2" fill="currentColor" stroke="none" />
-      </symbol>
-      <symbol id="icon-chat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <path d="M20 4H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3v4l4-4h9a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z" />
-        <line x1="7" y1="9" x2="17" y2="9" />
-        <line x1="7" y1="13" x2="13" y2="13" />
-      </symbol>
-      <symbol id="icon-focus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="9" />
-        <circle cx="12" cy="12" r="2" />
-        <line x1="12" y1="7" x2="12" y2="12" />
-        <line x1="12" y1="12" x2="15" y2="15" />
-      </symbol>
-      <symbol id="icon-files" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <path d="M4 6a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6z" />
-      </symbol>
-      <symbol id="icon-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="3" />
-        <path
-          d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" />
-      </symbol>
-      <symbol id="icon-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <path d="M3 6h18" />
-        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-        <path d="M10 11v6M14 11v6" />
-        <path d="M5 6l1 14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-14" />
-      </symbol>
-      <symbol id="icon-attach" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <path d="M16 5l-9 9a3 3 0 0 0 4 4l9-9a5 5 0 0 0-7-7L4 13a7 7 0 0 0 10 10l9-9" />
-      </symbol>
-      <symbol id="icon-folder-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <path d="M4 6a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v1" />
-        <path d="M4 6l2 11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2l2-9H8" />
-      </symbol>
-      <symbol id="icon-rain" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <path d="M17 10a4 4 0 0 0-6.8-2.4A4.5 4.5 0 0 0 5 11.5 3 3 0 0 0 6 17.5h11a4 4 0 0 0 0-8z" />
-        <line x1="8" y1="19" x2="8" y2="21" />
-        <line x1="12" y1="20" x2="12" y2="22" />
-        <line x1="16" y1="19" x2="16" y2="21" />
-      </symbol>
-      <symbol id="icon-fire" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 2s-4 4-4 9a4 4 0 0 0 8 0c0-5-4-9-4-9z" />
-        <path d="M12 17a3 3 0 0 1-3-3c0-2 2-4 3-6 1 2 3 4 3 6a3 3 0 0 1-3 3z" />
-      </symbol>
-      <symbol id="icon-waves" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <path d="M2 12c2-2 4-2 6 0s4 2 6 0 4-2 6 0 4-2 6 0" />
-        <path d="M2 8c2-2 4-2 6 0s4 2 6 0 4-2 6 0 4-2 6 0" />
-        <path d="M2 16c2-2 4-2 6 0s4 2 6 0 4-2 6 0 4-2 6 0" />
-      </symbol>
-      <symbol id="icon-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <path d="M18 16H6l2-2V9a4 4 0 0 1 8 0v5l2 2z" />
-        <path d="M10 20a2 2 0 0 0 4 0" />
-        <path d="M12 3v1" />
-      </symbol>
-      <symbol id="icon-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 12a9 9 0 0 1-9 9 9 9 0 0 1-9-9 9 9 0 0 1 9-9 9 9 0 0 1 6.7 2.9" />
-        <polyline points="21 3 21 9 15 9" />
-      </symbol>
-      <symbol id="icon-warning" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-        <line x1="12" y1="9" x2="12" y2="13" />
-        <line x1="12" y1="17" x2="12.01" y2="17" />
-      </symbol>
-      <symbol id="icon-success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-        <polyline points="22 4 12 14.01 9 11.01" />
-      </symbol>
-      <symbol id="icon-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-      </symbol>
-      <symbol id="icon-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="5" width="18" height="14" rx="2" />
-        <circle cx="8.5" cy="9.5" r="1.5" />
-        <path d="M21 19l-5-5-4 4-3-3-6 6" />
-      </symbol>
-      <symbol id="icon-video" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <rect x="2" y="6" width="20" height="12" rx="2" />
-        <polygon points="10 9 16 12 10 15 10 9" />
-      </symbol>
-      <symbol id="icon-audio" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <path d="M9 18V5l12-3v13" />
-        <circle cx="6" cy="18" r="3" />
-        <circle cx="18" cy="16" r="3" />
-      </symbol>
-      <symbol id="icon-document" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-        <polyline points="14 2 14 8 20 8" />
-        <line x1="16" y1="13" x2="8" y2="13" />
-        <line x1="16" y1="17" x2="8" y2="17" />
-        <line x1="10" y1="9" x2="8" y2="9" />
-      </symbol>
-      <symbol id="icon-markdown" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-        <polyline points="14 2 14 8 20 8" />
-        <path d="M8 15l3-3 3 3M14 12v6" />
-      </symbol>
-      <symbol id="icon-code" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-        <polyline points="14 2 14 8 20 8" />
-        <polyline points="10 13 8 15 10 17" />
-        <polyline points="14 13 16 15 14 17" />
-      </symbol>
-      <symbol id="icon-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-        <polyline points="14 2 14 8 20 8" />
-        <line x1="16" y1="13" x2="8" y2="13" />
-        <line x1="16" y1="17" x2="8" y2="17" />
-        <line x1="10" y1="9" x2="8" y2="9" />
-      </symbol>
-      <symbol id="icon-play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <polygon points="5 3 19 12 5 21 5 3" fill="currentColor" stroke="none" />
-      </symbol>
-      <symbol id="icon-pause" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <rect x="6" y="4" width="4" height="16" rx="1" />
-        <rect x="14" y="4" width="4" height="16" rx="1" />
-      </symbol>
-      <symbol id="icon-mute" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <path d="M11 5L6 9H2v6h4l5 4V5z" />
-        <line x1="23" y1="9" x2="17" y2="15" />
-        <line x1="17" y1="9" x2="23" y2="15" />
-      </symbol>
-      <symbol id="icon-volume" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <path d="M11 5L6 9H2v6h4l5 4V5z" />
-        <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-        <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
-      </symbol>
-      <symbol id="icon-fullscreen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3" />
-      </symbol>
-      <symbol id="icon-arrow-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="9 18 15 12 9 6" />
-      </symbol>
-      <symbol id="icon-arrow-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <line x1="12" y1="5" x2="12" y2="19" />
-        <polyline points="19 12 12 19 5 12" />
-      </symbol>
-      <symbol id="icon-arrow-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <line x1="12" y1="19" x2="12" y2="5" />
-        <polyline points="5 12 12 5 19 12" />
-      </symbol>
-      <symbol id="icon-coffee" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
-        <path d="M2 8h16v8a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
-        <line x1="6" y1="1" x2="6" y2="4" />
-        <line x1="10" y1="1" x2="10" y2="4" />
-        <line x1="14" y1="1" x2="14" y2="4" />
-      </symbol>
-      <symbol id="icon-plug" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <rect x="5" y="6" width="14" height="7" rx="2" />
-        <path d="M16 2v4M8 2v4" />
-        <path d="M6 13v4a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-4" />
-      </symbol>
-      <symbol id="icon-chevron-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="6 9 12 15 18 9" />
-      </symbol>
-      <symbol id="icon-alarm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="13" r="7" />
-        <polyline points="12 10 12 13 14 15" />
-        <path d="M5 5L3 3M19 5l2-2" />
-        <path d="M8 19l-2 2M16 19l2 2" />
-      </symbol>
-      <symbol id="icon-hourglass" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <path d="M5 3h14M5 21h14" />
-        <path d="M6 3v2a5 5 0 0 0 2 4 5 5 0 0 0-2 4v2" />
-        <path d="M18 3v2a5 5 0 0 1-2 4 5 5 0 0 1 2 4v2" />
-      </symbol>
-      <symbol id="icon-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="9" />
-        <path d="M3 12h18" />
-        <path d="M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18z" />
-      </symbol>
+      <symbol id="icon-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></symbol>
+      <symbol id="icon-unlock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 9.9-1" /></symbol>
+      <symbol id="icon-todo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 5h8" /><path d="M13 12h8" /><path d="M13 19h8" /><path d="m3 17 2 2 4-4" /><path d="m3 7 2 2 4-4" /></symbol>
+      <symbol id="icon-export" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3" /><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /></symbol>
+      <symbol id="icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></symbol>
+      <symbol id="icon-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></symbol>
+      <symbol id="icon-test" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2" /><path d="M6.453 15h11.094" /><path d="M8.5 2h7" /></symbol>
+      <symbol id="icon-quick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.914 4a1.5 1.5 0 00-2.474-1.561l-9 9A1.5 1.5 0 005.5 14h4.002a.5.5 0 01.471.666L8.086 20a1.5 1.5 0 002.475 1.56l9-9A1.5 1.5 0 0018.5 10h-3.997a.5.5 0 01-.472-.667z" /></symbol>
+      <symbol id="icon-chat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719" /></symbol>
+      <symbol id="icon-focus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><line x1="22" x2="18" y1="12" y2="12" /><line x1="6" x2="2" y1="12" y2="12" /><line x1="12" x2="12" y1="6" y2="2" /><line x1="12" x2="12" y1="22" y2="18" /></symbol>
+      <symbol id="icon-files" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2h-4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V8" /><path d="M16.706 2.706A2.4 2.4 0 0 0 15 2v5a1 1 0 0 0 1 1h5a2.4 2.4 0 0 0-.706-1.706z" /><path d="M5 7a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h8a2 2 0 0 0 1.732-1" /></symbol>
+      <symbol id="icon-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915" /><circle cx="12" cy="12" r="3" /></symbol>
+      <symbol id="icon-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6" /><path d="M14 11v6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M3 6h18" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></symbol>
+      <symbol id="icon-attach" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 6-8.414 8.586a2 2 0 0 0 2.829 2.829l8.414-8.586a4 4 0 1 0-5.657-5.657l-8.379 8.551a6 6 0 1 0 8.485 8.485l8.379-8.551" /></symbol>
+      <symbol id="icon-folder-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2" /></symbol>
+      <symbol id="icon-rain" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" /><path d="M16 14v6" /><path d="M8 14v6" /><path d="M12 16v6" /></symbol>
+      <symbol id="icon-fire" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4" /></symbol>
+      <symbol id="icon-waves" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12q2.5 2 5 0t5 0 5 0 5 0" /><path d="M2 19q2.5 2 5 0t5 0 5 0 5 0" /><path d="M2 5q2.5 2 5 0t5 0 5 0 5 0" /></symbol>
+      <symbol id="icon-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.268 21a2 2 0 0 0 3.464 0" /><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326" /></symbol>
+      <symbol id="icon-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M8 16H3v5" /></symbol>
+      <symbol id="icon-warning" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" /><path d="M12 9v4" /><path d="M12 17h.01" /></symbol>
+      <symbol id="icon-success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="m9 12 2 2 4-4" /></symbol>
+      <symbol id="icon-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></symbol>
+      <symbol id="icon-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></symbol>
+      <symbol id="icon-video" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5" /><rect x="2" y="6" width="14" height="12" rx="2" /></symbol>
+      <symbol id="icon-audio" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10v3" /><path d="M6 6v11" /><path d="M10 3v18" /><path d="M14 8v7" /><path d="M18 5v13" /><path d="M22 10v3" /></symbol>
+      <symbol id="icon-document" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" /><path d="M14 2v5a1 1 0 0 0 1 1h5" /><path d="M10 9H8" /><path d="M16 13H8" /><path d="M16 17H8" /></symbol>
+      <symbol id="icon-markdown" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" /><path d="M14 2v5a1 1 0 0 0 1 1h5" /><path d="M11 18h2" /><path d="M12 12v6" /><path d="M9 13v-.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 .5.5v.5" /></symbol>
+      <symbol id="icon-code" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 18 6-6-6-6" /><path d="m8 6-6 6 6 6" /></symbol>
+      <symbol id="icon-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16" /><path d="M4 7V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2" /><path d="M9 20h6" /></symbol>
+      <symbol id="icon-play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z" /></symbol>
+      <symbol id="icon-pause" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="14" y="3" width="5" height="18" rx="1" /><rect x="5" y="3" width="5" height="18" rx="1" /></symbol>
+      <symbol id="icon-mute" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z" /><line x1="22" x2="16" y1="9" y2="15" /><line x1="16" x2="22" y1="9" y2="15" /></symbol>
+      <symbol id="icon-volume" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z" /><path d="M16 9a5 5 0 0 1 0 6" /><path d="M19.364 18.364a9 9 0 0 0 0-12.728" /></symbol>
+      <symbol id="icon-fullscreen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3" /><path d="M21 8V5a2 2 0 0 0-2-2h-3" /><path d="M3 16v3a2 2 0 0 0 2 2h3" /><path d="M16 21h3a2 2 0 0 0 2-2v-3" /></symbol>
+      <symbol id="icon-arrow-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></symbol>
+      <symbol id="icon-arrow-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14" /><path d="m19 12-7 7-7-7" /></symbol>
+      <symbol id="icon-arrow-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 7-7 7 7" /><path d="M12 19V5" /></symbol>
+      <symbol id="icon-coffee" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v2" /><path d="M14 2v2" /><path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1" /><path d="M6 2v2" /></symbol>
+      <symbol id="icon-plug" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-5" /><path d="M15 8V2" /><path d="M17 8a1 1 0 0 1 1 1v4a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1z" /><path d="M9 8V2" /></symbol>
+      <symbol id="icon-chevron-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6" /></symbol>
+      <symbol id="icon-alarm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8" /><path d="M12 9v4l2 2" /><path d="M5 3 2 6" /><path d="m22 6-3-3" /><path d="M6.38 18.7 4 21" /><path d="M17.64 18.67 20 21" /></symbol>
+      <symbol id="icon-hourglass" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22h14" /><path d="M5 2h14" /><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22" /><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2" /></symbol>
+      <symbol id="icon-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" /><path d="M2 12h20" /></symbol>
+      <symbol id="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" /><circle cx="12" cy="12" r="3" /></symbol>
     </defs>
   </svg>
 
@@ -5263,9 +5852,36 @@
 
   <!-- 锁屏时段已结束但每日任务未达标：常驻提示条 -->
   <div id="dailyTaskBanner" class="daily-task-banner">
-    <svg class="icon" aria-hidden="true"><use href="#icon-todo"></use></svg>
+    <svg class="icon" aria-hidden="true">
+      <use href="#icon-todo"></use>
+    </svg>
     <span id="dailyTaskBannerText">锁屏时间已结束，请完成剩余每日任务后解除锁定</span>
   </div>
+
+  <!-- Windows 11 风格通知浮层：4 个角落各自的悬浮列，showToast 按设置角落 append，CSS 控制锚点 -->
+  <div id="toastLayer">
+    <div class="corner tl" id="toastTL"></div>
+    <div class="corner tr" id="toastTR"></div>
+    <div class="corner bl" id="toastBL"></div>
+    <div class="corner br" id="toastBR"></div>
+  </div>
+
+  <!-- 顶部胶囊通知 / 倒计时胶囊 / 紧急退出提示：与 toast 同处 body 级，避免被 overlay 内部层（overflow:hidden / 较低 z-index 堆叠上下文）裁剪或遮盖 -->
+  <div id="topNoticeContainer">
+    <div id="countdownChip">
+      <div class="row1">
+        <span class="cd-title" id="countdownChipTitle">倒计时</span>
+        <span class="cd-time" id="countdownChipTime">00:00</span>
+      </div>
+      <div class="cd-track">
+        <div class="cd-fill" id="countdownChipFill"></div>
+      </div>
+    </div>
+    <div id="cooldownNotice">紧急退出暂时不可用，请在 <span id="cooldownSeconds">0</span> 秒后重试</div>
+    <div id="extendInfo">锁屏时间已延长，程序将在 <span id="extendSeconds">0</span> 秒后退出</div>
+  </div>
+
+  <!-- 胶囊折叠区已迁到面板 header 内 .agent-header-actions 第一个位置（id=agentHeaderCapsule），本占位元素移除 -->
 
   <!-- 用户样式变量配置弹窗 -->
   <div id="userStyleConfigModal" class="userstyle-modal" style="display:none;">
@@ -5273,7 +5889,9 @@
     <div class="userstyle-modal-panel">
       <div class="userstyle-modal-head">
         <div class="userstyle-modal-title-wrap">
-          <svg class="icon" aria-hidden="true" style="width:1.3em;height:1.3em;"><use href="#icon-document"></use></svg>
+          <svg class="icon" aria-hidden="true" style="width:1.3em;height:1.3em;">
+            <use href="#icon-document"></use>
+          </svg>
           <span class="userstyle-modal-title" id="userStyleConfigTitle">用户样式配置</span>
           <label class="userstyle-enabled-toggle" title="启用/禁用此样式">
             <input type="checkbox" id="userStyleEnabledCheck" onchange="onUserStyleEnabledChanged(this.checked)">
@@ -5370,21 +5988,6 @@
       <!-- 格言 -->
       <div class="quote-line" id="quoteLine">— 千里之行，始于足下 —</div>
 
-      <div id="topNoticeContainer">
-        <div id="countdownMilestoneBanner"></div>
-        <div id="countdownChip">
-          <div class="row1">
-            <span class="cd-title" id="countdownChipTitle">倒计时</span>
-            <span class="cd-time" id="countdownChipTime">00:00</span>
-          </div>
-          <div class="cd-track">
-            <div class="cd-fill" id="countdownChipFill"></div>
-          </div>
-        </div>
-        <div id="cooldownNotice">紧急退出暂时不可用，请在 <span id="cooldownSeconds">0</span> 秒后重试</div>
-        <div id="extendInfo">锁屏时间已延长，程序将在 <span id="extendSeconds">0</span> 秒后退出</div>
-      </div>
-
       <!-- 多功能面板（对话 / 专注 / 设置） -->
       <div id="agentPanel" class="agent-panel">
         <div class="agent-header">
@@ -5411,7 +6014,16 @@
               </svg> 设置</button>
           </div>
           <div class="agent-header-actions">
+            <!-- 胶囊折叠区：仅当胶囊模式 + 面板高 ≥ 0.85 时显示；与 #agentPanelClock 时间显示共存 -->
+            <div class="agent-header-capsule" id="agentHeaderCapsule" style="display:none" title="实时胶囊通知（5s 自动并入通知中心，可点击 ‹ › 翻看当前多条）">
+              <button class="ahc-nav" id="ahcPrev" onclick="capsuleNotifPrev()" title="上一条">‹</button>
+              <span class="ahc-ticker" id="notifTicker"></span>
+              <span class="ahc-count" id="notifTickerCount"></span>
+              <button class="ahc-nav" id="ahcNext" onclick="capsuleNotifNext()" title="下一条">›</button>
+            </div>
             <span class="panel-clock" id="agentPanelClock" title="当前时间"></span>
+            <button id="panelNotifyBtn" class="agent-cap-btn" onclick="toggleNotifyCenter()" title="通知中心"><svg class="icon" aria-hidden="true"><use href="#icon-bell"></use></svg><span class="nb-dot" id="nbDot">0</span></button>
+            <button id="panelCapBtn" class="agent-cap-btn" onclick="captureOverlayScreenshot()" title="截取遮罩并保存到文件"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg></button>
             <button id="siteSwitchBtn" class="agent-site-switch" onclick="switchSite()" style="display:none"
               title="切换网站"><svg class="icon" aria-hidden="true">
                 <use href="#icon-refresh"></use>
@@ -5427,6 +6039,7 @@
               </svg></button>
           </div>
         </div>
+
 
         <!-- 页1：AI 对话 -->
         <div class="agent-page active" id="agentPageChat">
@@ -5602,8 +6215,7 @@
                       aria-hidden="true">
                       <use href="#icon-plus"></use>
                     </svg> 安装 CRX 扩展</button>
-                  <button class="action-btn-small" onclick="installExtensionDir()"><svg class="icon"
-                      aria-hidden="true">
+                  <button class="action-btn-small" onclick="installExtensionDir()"><svg class="icon" aria-hidden="true">
                       <use href="#icon-folder-open"></use>
                     </svg> 安装解压目录</button>
                   <button class="action-btn-small" onclick="importUserScript()"><svg class="icon" aria-hidden="true">
@@ -5618,7 +6230,9 @@
               </div>
               <div class="page-section">
                 <div class="more-title">已加载扩展（点击「配置」打开指定扩展的设置页）</div>
-                <div class="ext-list" id="extCrxList"><div class="ext-empty">加载中…</div></div>
+                <div class="ext-list" id="extCrxList">
+                  <div class="ext-empty">加载中…</div>
+                </div>
               </div>
               <div class="page-section">
                 <div class="more-title">用户脚本</div>
@@ -5702,6 +6316,13 @@
               </div>
               <input type="checkbox" id="verifyCodeCheck" />
             </div>
+            <div class="page-section vc-block">
+              <div class="more-title">查看验证码</div>
+              <p class="vc-desc">临时关闭强制置顶 45 秒，便于查看短信 / 验证码等。每次启动仅可使用 <b id="vcQuota">2</b> 次，重启应用后恢复。</p>
+              <button id="vcSettingsBtn" class="action-btn-small" onclick="viewVerificationCode()">
+                <svg class="icon" aria-hidden="true"><use href="#icon-eye"></use></svg> <span class="vc-label">查看验证码</span>
+              </button>
+            </div>
             <div class="setting-row">
               <div class="setting-label">
                 <span>即时模式</span>
@@ -5753,6 +6374,42 @@
             </div>
             <div class="setting-actions">
               <button class="action-btn-small primary" onclick="saveFocusSettings()">保存设置</button>
+            </div>
+            <div class="setting-row">
+              <div class="setting-label">
+                <span>通知样式</span>
+                <small>Windows 风格：四角 Toast 横幅，5 秒后动画消失；顶部胶囊：居中常驻提示</small>
+              </div>
+              <div class="layout-switch" id="notifStyleSwitch">
+                <button class="sound-opt" data-style="toast" onclick="setNotifStyle('toast')">Windows Toast</button>
+                <button class="sound-opt" data-style="capsule" onclick="setNotifStyle('capsule')">顶部胶囊</button>
+              </div>
+            </div>
+            <div class="setting-row" id="notifCornerRow">
+              <div class="setting-label">
+                <span>Toast 弹出位置</span>
+                <small>Windows Toast 模式下，横幅出现在屏幕四个角落之一（经典布局仅支持左侧上下，避免与右侧网站重叠）</small>
+              </div>
+              <div class="layout-switch" id="notifCornerSwitch">
+                <button class="sound-opt" data-corner="tl" onclick="setNotifCorner('tl')">左上</button>
+                <button class="sound-opt" data-corner="tr" onclick="setNotifCorner('tr')">右上</button>
+                <button class="sound-opt" data-corner="bl" onclick="setNotifCorner('bl')">左下</button>
+                <button class="sound-opt" data-corner="br" onclick="setNotifCorner('br')">右下</button>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="setting-label">
+                <span>右侧拖拽唤出通知中心</span>
+                <small>现代视图下，从窗口右边缘向左拖拽即可唤出通知中心（带遮罩）。关闭则仅能通过铃铛打开</small>
+              </div>
+              <input type="checkbox" id="notifDragCheck" onchange="setNotifDragOpen(this.checked)" />
+            </div>
+            <div class="setting-row">
+              <div class="setting-label">
+                <span>显示通知中心红点提醒</span>
+                <small>关闭（默认）则不显示未读红点角标，仅通过通知中心列表查看未读；开启后按钮上显示未读数</small>
+              </div>
+              <input type="checkbox" id="notifDotCheck" onchange="setNotifDotHidden(!this.checked)" />
             </div>
             <div class="config-card">
               <div class="config-card-title">
@@ -5834,17 +6491,48 @@
                 <button class="action-btn-small primary" onclick="saveConfigFromUI()">保存配置</button>
               </div>
             </div>
+
+            <!-- 数据备份与迁移 -->
+            <div class="config-card">
+              <div class="config-card-title">
+                <span><svg class="icon" aria-hidden="true"><use href="#icon-folder-open"></use></svg> 数据备份与迁移</span>
+                <small>导出 / 导入全部用户数据（zip）</small>
+              </div>
+              <div class="backup-grid">
+                <label class="backup-check"><input type="checkbox" class="bk-ds" value="website" checked /> 网站设置（网站 / 时段 / 每日任务）</label>
+                <label class="backup-check"><input type="checkbox" class="bk-ds" value="settings" checked /> 专注与通知设置（含快捷键）</label>
+                <label class="backup-check"><input type="checkbox" class="bk-ds" value="cookie" checked /> 登录 Cookie</label>
+                <label class="backup-check"><input type="checkbox" class="bk-ds" value="sounds" checked /> 自定义环境音</label>
+                <label class="backup-check"><input type="checkbox" class="bk-ds" value="files" checked /> 文件库</label>
+                <label class="backup-check"><input type="checkbox" class="bk-ds" value="todos" checked /> 待办 Todos</label>
+                <label class="backup-check"><input type="checkbox" class="bk-ds" value="stats" /> 使用统计</label>
+                <label class="backup-check"><input type="checkbox" class="bk-ds" value="extensions" /> 浏览器扩展</label>
+                <label class="backup-check"><input type="checkbox" class="bk-ds" value="userstyles" /> 用户样式</label>
+                <label class="backup-check"><input type="checkbox" class="bk-ds" value="userscripts" /> 用户脚本</label>
+              </div>
+              <div class="backup-row">
+                <label class="backup-check"><input type="checkbox" id="bkIncludeMedia" checked /> 环境音连同音频文件本体（可能很大）</label>
+              </div>
+              <div class="setting-actions">
+                <button class="action-btn-small" type="button" onclick="exportAllData()">导出选中数据</button>
+                <button class="action-btn-small primary" type="button" onclick="importAllData()">导入备份</button>
+              </div>
+              <div id="backupMsg" class="backup-msg"></div>
+            </div>
           </div>
         </div>
 
         <!-- 页5：网站（全屏站点模式，BrowserView 全屏透出） -->
         <div class="agent-page site-page" id="agentPageSite">
           <div class="site-stage" id="siteStage">
-            <svg class="icon" aria-hidden="true">
-              <use href="#icon-globe"></use>
-            </svg>
-            <div class="site-stage-name" id="siteStageName">网站</div>
-            <div class="site-stage-sub">网站将在此全屏展示，点击右上角「切换网站」可切换</div>
+            <!-- 占位引导：仅当 body.site-active 为假（无网页）时可见，由 CSS 控制 -->
+            <div class="site-stage-placeholder" id="siteStagePlaceholder">
+              <svg class="icon" aria-hidden="true">
+                <use href="#icon-globe"></use>
+              </svg>
+              <div class="site-stage-name" id="siteStageName">网站</div>
+              <div class="site-stage-sub">网站将在此全屏展示，点击右上角「切换网站」可切换</div>
+            </div>
           </div>
         </div>
 
@@ -5870,6 +6558,37 @@
           <div class="fileview-preview-body" id="fileViewPreviewBody"></div>
         </div>
       </div>
+    </div>
+
+    <!-- 通知中心遮罩（点击关闭） -->
+    <div id="ncScrim" onclick="onNcScrimClick(event)"></div>
+
+    <!-- 通知中心：右侧边缘拖拽热区（仅 modern 视图且开启开关时启用） -->
+    <div id="ncEdgeZone" class="nc-edge-zone"></div>
+
+    <!-- 通知中心（脱离 agent-panel，独立 fixed 层，避免受面板 transform/高度影响） -->
+    <div id="notifyCenter">
+      <div class="nc-head">
+        <div class="nc-title"><svg class="icon" aria-hidden="true"><use href="#icon-bell"></use></svg> 通知中心</div>
+        <div class="nc-actions">
+          <span class="nc-act" onclick="markAllNotifRead()">全部已读</span>
+          <span class="nc-act" onclick="clearNotifHistory()">清空</span>
+          <span class="nc-act" onclick="toggleNotifyCenter()">✕</span>
+        </div>
+      </div>
+      <div class="nc-live" id="ncLive">
+        <div class="nc-live-title">实时状态</div>
+        <div id="ncLiveBody"><div class="nc-live-empty">暂无进行中的计时 / 锁屏</div></div>
+      </div>
+      <div class="nc-filters" id="ncFilters">
+        <span class="nc-filter active" data-cat="all" onclick="setNotifFilter('all')">全部</span>
+        <span class="nc-filter" data-cat="timer" onclick="setNotifFilter('timer')">倒计时</span>
+        <span class="nc-filter" data-cat="ai" onclick="setNotifFilter('ai')">AI</span>
+        <span class="nc-filter" data-cat="lock" onclick="setNotifFilter('lock')">锁屏</span>
+        <span class="nc-filter" data-cat="daily" onclick="setNotifFilter('daily')">任务</span>
+        <span class="nc-filter" data-cat="system" onclick="setNotifFilter('system')">系统</span>
+      </div>
+      <div class="nc-list" id="ncList"><div class="nc-empty">暂无通知记录</div></div>
     </div>
 
     <div class="right"></div>
@@ -5898,6 +6617,12 @@
     function applyLayoutStyle() {
       layoutStyle = localStorage.getItem('fl-layout') === 'legacy' ? 'legacy' : 'modern';
       document.body.classList.toggle('layout-legacy', layoutStyle === 'legacy');
+      // 布局切换后：刷新 toast 角落按钮显隐（经典仅左侧），并校验当前角落是否仍合法
+      // 注意：此处不可持久化——启动时（DOMContentLoaded）偏好尚未加载，NOTIF_STATE.corner 仍是默认 'br'，
+      // 若在此 persist 会覆盖已保存的角落偏好，导致重启还原为右下
+      if (typeof applyNotifCornerUI === 'function') {
+        applyNotifCornerUI(NOTIF_STATE.corner); // 回退非法角落 + 重绘按钮显隐（不持久化）
+      }
       const btns = document.querySelectorAll('.layout-switch .sound-opt');
       btns.forEach(b => b.classList.toggle('active', b.dataset.layout === layoutStyle));
       const siteTab = document.querySelector('.agent-tab[data-page="site"]');
@@ -5921,6 +6646,11 @@
       layoutStyle = mode === 'legacy' ? 'legacy' : 'modern';
       localStorage.setItem('fl-layout', layoutStyle);
       applyLayoutStyle();
+      // 布局切换（如 modern→legacy）会约束当前角落（tr/br 在经典下回退 tl），持久化约束后的有效角落
+      if (typeof persistNotifPrefs === 'function') persistNotifPrefs();
+      // 经典风格下通知中心的右侧拖拽唤出不可用：关闭通知中心并刷新热区
+      if (layoutStyle === 'legacy' && typeof ncOpen !== 'undefined' && ncOpen) setNotifyCenter(false);
+      if (typeof applyDragOpenState === 'function') applyDragOpenState();
       showSystemToast(layoutStyle === 'legacy'
         ? '<svg class="icon" aria-hidden="true"><use href="#icon-settings"></use></svg> 已切换到经典风格（网站常驻右侧）'
         : '<svg class="icon" aria-hidden="true"><use href="#icon-settings"></use></svg> 已切换到现代风格（网站收纳在面板）');
@@ -5952,6 +6682,7 @@
         document.getElementById('line1').textContent = t.line1;
         document.getElementById('line2').textContent = t.line2;
       }
+      tickNotifyLive();
     }
 
     // 各面板右侧顶栏时钟（hh:mm，渲染在按钮左侧）：每 15 秒刷新一次
@@ -5964,6 +6695,7 @@
       if (agentClock) agentClock.textContent = text;
       const todoClock = document.getElementById('todoPanelClock');
       if (todoClock) todoClock.textContent = text;
+      // 全屏顶栏 #notifTopBar 已移除，仅维护面板/todo 两个时钟显示
     }
 
     // ---- 环境音背景图管理（每个环境音一张全屏背景图） ----
@@ -6049,12 +6781,13 @@
         setLabel('<svg class="icon" aria-hidden="true"><use href="#icon-lock"></use></svg><span>网站已锁定</span>', true);
         return;
       }
-      const current = siteList.find(s => s.name === currentSiteName);
+      // 一次遍历同时取当前项与其索引（等价于原 find + findIndex 两次遍历）
+      const currentIndex = siteList.findIndex(s => s.name === currentSiteName);
+      const current = currentIndex >= 0 ? siteList[currentIndex] : undefined;
       if (current && current.pinned) {
         setLabel(`<svg class="icon" aria-hidden="true"><use href="#icon-lock"></use></svg><span>${current.name} (已固定)</span>`, true);
         return;
       }
-      const currentIndex = siteList.findIndex(s => s.name === currentSiteName);
       const nextIndex = (currentIndex + 1) % siteList.length;
       const nextName = siteList[nextIndex].name;
       setLabel(`<svg class="icon" aria-hidden="true"><use href="#icon-refresh"></use></svg><span>切换到 ${nextName}</span>`, false);
@@ -6103,6 +6836,58 @@
       if (btn) btn.textContent = alwaysOnTop ? '置顶: 开启' : '置顶: 关闭';
     }
 
+    // 生产模式「查看验证码」：临时关闭强制置顶 75s，倒计时结束自动恢复
+    const VERIFY_CODE_SECONDS = 75;
+    let verifyCodeActive = false;
+    let verifyCodeCountdown = null;
+    async function viewVerificationCode() {
+      if (verifyCodeActive) return;        // 防连点：进行中忽略
+      // 配额校验：每次启动仅允许使用 2 次
+      let quota = { ok: true, remaining: 2 };
+      try { quota = await window.utils.consumeVerifyCode(); } catch (e) { console.error('查询验证码配额失败', e); }
+      if (!quota.ok) {
+        showSystemToast('本次启动查看验证码次数已用完（上限 2 次），重启应用后可恢复', 'warning');
+        refreshVcQuota();
+        return;
+      }
+      verifyCodeActive = true;
+      const panelBtn = document.getElementById('vcSettingsBtn');
+      if (panelBtn) { panelBtn.classList.add('active'); panelBtn.disabled = true; }
+      try {
+        await window.utils.setAlwaysOnTop(false);
+      } catch (e) { console.error('关闭强制置顶失败', e); }
+      showSystemToast('已临时关闭强制置顶，你有 75 秒时间查看验证码');
+      let remain = VERIFY_CODE_SECONDS;
+      const setLabel = (t) => { if (panelBtn) { const l = panelBtn.querySelector('.vc-label'); if (l) l.textContent = t; } };
+      setLabel('验证码 (' + remain + 's)');
+      verifyCodeCountdown = setInterval(async () => {
+        remain--;
+        if (remain > 0) { setLabel('验证码 (' + remain + 's)'); return; }
+        clearInterval(verifyCodeCountdown); verifyCodeCountdown = null;
+        verifyCodeActive = false;
+        if (panelBtn) { panelBtn.classList.remove('active'); panelBtn.disabled = false; }
+        setLabel('查看验证码');
+        try {
+          await window.utils.setAlwaysOnTop(true);
+        } catch (e) { console.error('恢复强制置顶失败', e); }
+        showSystemToast('已恢复强制置顶');
+      }, 1000);
+    }
+
+    // 刷新「查看验证码」剩余次数与按钮可用状态
+    async function refreshVcQuota() {
+      let remaining = 2;
+      try { remaining = await window.utils.getVerifyCodeQuota(); } catch (e) { console.error('查询验证码配额失败', e); }
+      const qEl = document.getElementById('vcQuota');
+      if (qEl) qEl.textContent = remaining;
+      const exhausted = remaining <= 0;
+      const panelBtn = document.getElementById('vcSettingsBtn');
+      if (panelBtn) {
+        panelBtn.disabled = exhausted;
+        panelBtn.classList.toggle('disabled', exhausted);
+      }
+    }
+
     function exitTest() {
       if (window.utils && window.utils.closeOverlay) {
         window.utils.closeOverlay();
@@ -6112,6 +6897,7 @@
     function updatePanelOpenClass() {
       const anyOpen = document.querySelector('.slide-panel.open, .agent-panel.open');
       document.body.classList.toggle('panel-open', !!anyOpen);
+      repositionNotifyCenter();
     }
 
     // ---- Todo ----
@@ -6272,7 +7058,11 @@
       await saveTodos();
       renderTodos();
     }
-    function openTodoPanel() {document.getElementById('todoPanel').classList.add('open'); updatePanelOpenClass();}
+    function openTodoPanel() {
+      // 打开待办面板时，无论通知中心处于 drag 还是 popup 模式都先关闭它（切换面板语义）
+      if (typeof ncOpen !== 'undefined' && ncOpen) setNotifyCenter(false);
+      document.getElementById('todoPanel').classList.add('open'); updatePanelOpenClass();
+    }
     function closeTodoPanel() {document.getElementById('todoPanel').classList.remove('open'); updatePanelOpenClass();}
 
     document.getElementById('todoInput').addEventListener('keydown', (e) => {
@@ -6315,32 +7105,684 @@
     // 番茄钟 / 专注统计 / 环境音 / 格言 / 锁定设置
     // ============================================================
 
-    // ---- 轻量系统提示 ----
-    function showSystemToast(text) {
-      let container = document.getElementById('topNoticeContainer');
-      if (!container) {
-        container = document.createElement('div');
-        container.id = 'topNoticeContainer';
-        document.body.appendChild(container);
+    // ============================================================
+    // 全局通知引擎（toast 四角横幅 / 顶部胶囊）+ 通知中心
+    // ============================================================
+    const NOTIF_STATE = {
+      style: 'toast',     // 'toast' | 'capsule'
+      corner: 'br',       // tl | tr | bl | br
+      dragOpen: true,     // 是否允许从右侧边缘拖拽唤出通知中心（仅 modern 视图生效）
+      dotHidden: true,    // 默认隐藏通知中心红点提醒（用户可在设置开关开启显示）
+      filter: 'all',
+      history: [],        // {id, type, category, title, text, time, read}
+      seq: 0
+    };
+
+    const NOTIF_CAT_LABEL = {timer:'倒计时', ai:'AI', lock:'锁屏', daily:'任务', system:'系统', ambient:'环境音'};
+    const NOTIF_CAT_ICON = {timer:'#icon-alarm', ai:'#icon-chat', lock:'#icon-lock', daily:'#icon-todo', system:'#icon-info', ambient:'#icon-bell', success:'#icon-check', warning:'#icon-warning', danger:'#icon-warning'};
+
+    function setNotifStyle(style) {
+      NOTIF_STATE.style = style;
+      document.querySelectorAll('#notifStyleSwitch .sound-opt').forEach(b => b.classList.toggle('active', b.dataset.style === style));
+      const cornerRow = document.getElementById('notifCornerRow');
+      if (cornerRow) cornerRow.style.display = style === 'toast' ? '' : 'none';
+      persistNotifPrefs();
+      if (typeof updateCapsuleLayout === 'function') updateCapsuleLayout();
+    }
+    // 经典布局（右侧有网站）下，右上 / 右下 会与网站重叠，仅允许「左上 / 左下」；
+    // 现代布局允许全部四角。非法值一律回退「左上」。
+    const LEGACY_CORNERS = ['tl', 'bl'];
+    const ALL_CORNERS = ['tl', 'tr', 'bl', 'br'];
+    function isLegacyLayout() {
+      return document.body.classList.contains('layout-legacy');
+    }
+    function cornerAllowed(corner) {
+      const allowed = isLegacyLayout() ? LEGACY_CORNERS : ALL_CORNERS;
+      return allowed.indexOf(corner) !== -1;
+    }
+    // 仅应用角落（约束 + 状态 + 按钮显隐），不持久化——供布局切换/启动重校验使用，
+    // 避免启动阶段（偏好尚未加载、NOTIF_STATE.corner 仍是默认 'br'）误把默认值写回文件覆盖已保存偏好
+    function applyNotifCornerUI(corner) {
+      // 经典布局下不允许右上/右下：若当前布局不支持该角落，回退左上
+      if (!cornerAllowed(corner)) corner = 'tl';
+      NOTIF_STATE.corner = corner;
+      // 经典布局下隐藏不支持的角落按钮，避免误导
+      const legacy = isLegacyLayout();
+      document.querySelectorAll('#notifCornerSwitch .sound-opt').forEach(b => {
+        const c = b.dataset.corner;
+        const supported = legacy ? LEGACY_CORNERS.indexOf(c) !== -1 : true;
+        b.style.display = supported ? '' : 'none';
+        b.classList.toggle('active', c === corner);
+      });
+    }
+    function setNotifCorner(corner) {
+      applyNotifCornerUI(corner);
+      persistNotifPrefs();
+    }
+    function setNotifDragOpen(on) {
+      NOTIF_STATE.dragOpen = !!on;
+      persistNotifPrefs();
+      applyDragOpenState();
+    }
+    function setNotifDotHidden(hidden) {
+      NOTIF_STATE.dotHidden = !!hidden;
+      persistNotifPrefs();
+      applyDotHiddenState();
+    }
+    function persistNotifPrefs() {
+      // 主进程持久化（跨会话保留）；localStorage 作为兜底，避免主进程通道不可用时丢偏好
+      try {
+        localStorage.setItem('fl-notif', JSON.stringify({style: NOTIF_STATE.style, corner: NOTIF_STATE.corner, dragOpen: NOTIF_STATE.dragOpen, dotHidden: NOTIF_STATE.dotHidden}));
+      } catch (e) {}
+      if (window.utils && window.utils.setNotifPrefs) {
+        window.utils.setNotifPrefs({style: NOTIF_STATE.style, corner: NOTIF_STATE.corner, dragOpen: NOTIF_STATE.dragOpen, dotHidden: NOTIF_STATE.dotHidden})
+          .catch(() => {});
       }
+    }
+    async function loadNotifPrefs() {
+      // 优先从主进程读取持久化偏好（根治重启变回横幅）
+      try {
+        if (window.utils && window.utils.getNotifPrefs) {
+          const p = await window.utils.getNotifPrefs();
+          if (p && p.style) NOTIF_STATE.style = p.style;
+          if (p && p.corner) NOTIF_STATE.corner = cornerAllowed(p.corner) ? p.corner : 'tl';
+          if (p && typeof p.dragOpen === 'boolean') NOTIF_STATE.dragOpen = p.dragOpen;
+          if (p && typeof p.dotHidden === 'boolean') NOTIF_STATE.dotHidden = p.dotHidden;
+        }
+      } catch (e) {
+        // 兜底：主进程通道失败时使用 localStorage
+        try {
+          const raw = localStorage.getItem('fl-notif');
+          if (raw) {
+            const p = JSON.parse(raw);
+            if (p.style) NOTIF_STATE.style = p.style;
+            if (p.corner) NOTIF_STATE.corner = cornerAllowed(p.corner) ? p.corner : 'tl';
+            if (typeof p.dragOpen === 'boolean') NOTIF_STATE.dragOpen = p.dragOpen;
+            if (typeof p.dotHidden === 'boolean') NOTIF_STATE.dotHidden = p.dotHidden;
+          }
+        } catch (_) {}
+      }
+      setNotifStyle(NOTIF_STATE.style);
+      setNotifCorner(NOTIF_STATE.corner);
+      applyDragOpenState();
+      applyDotHiddenState();
+    }
+    // 根据开关启用/停用右侧拖拽热区（仅 modern 视图）
+    function applyDragOpenState() {
+      const zone = document.getElementById('ncEdgeZone');
+      if (zone) {
+        const enabled = NOTIF_STATE.dragOpen && !document.body.classList.contains('layout-legacy');
+        zone.classList.toggle('enabled', enabled);
+      }
+      const sw = document.getElementById('notifDragCheck');
+      if (sw) sw.checked = NOTIF_STATE.dragOpen;
+    }
+    // 根据 dotHidden 偏好隐藏/显示通知中心红点（默认隐藏）
+    function applyDotHiddenState() {
+      const sw = document.getElementById('notifDotCheck');
+      if (sw) sw.checked = !NOTIF_STATE.dotHidden;   // 开关「显示红点」与 dotHidden 反向
+      bumpUnread();                                   // 立即按新偏好刷新角标
+    }
+
+    // 统一入口：type = info|success|warning|danger；category 用于通知中心分类
+    function notify(type, text, opts) {
+      opts = opts || {};
+      const category = opts.category || 'system';
+      const title = opts.title || NOTIF_CAT_LABEL[category] || '通知';
+      // 1) 历史记录（通知中心）
+      const id = ++NOTIF_STATE.seq;
+      const read = !!(opts && opts.read);   // 少数场景（如截屏成功）直接标记已读，避免红点打扰
+      const pinned = !!(opts && opts.pinned); // 常驻置顶（如经典模式每日任务阻塞提醒）
+      const item = {id, type, category, title, text: stripTags(text), time: Date.now(), read: read, pinned: pinned};
+      if (pinned) {
+        // 同一 pinned 类别仅保留一条（避免每 5 分钟刷新堆积），以最新文案更新
+        const existing = NOTIF_STATE.history.find(h => h.pinned && h.category === category);
+        if (existing) {
+          existing.text = item.text;
+          existing.time = item.time;
+          existing.title = item.title;
+          existing.type = item.type;
+          existing.read = read;
+          renderNotifyHistory();
+          return NOTIF_STATE;  // 不重复入列、不触发额外 toast（toast 由调用方单独控制）
+        }
+      }
+      NOTIF_STATE.history.unshift(item);
+      if (NOTIF_STATE.history.length > 100) NOTIF_STATE.history.length = 100;
+      renderNotifyHistory();
+      if (!read) bumpUnread();   // 已读项不增加未读红点
+
+      // 2) 视觉展示
+      if (NOTIF_STATE.style === 'capsule') {
+        showCapsule(type, text, opts);
+        // 折叠区只轮播「非 persist」的实时提示（persist 类如 AI 思考中常驻居中胶囊，不进轮播）
+        if (!(opts && opts.persist)) pushFoldedLive(type, text);
+      } else {
+        showToast(type, title, text, category);
+      }
+    }
+
+    function stripTags(html) {
+      const d = document.createElement('div');
+      d.innerHTML = html;
+      return (d.textContent || '').trim();
+    }
+
+    // ---- Windows 11 风格悬浮通知卡片 ----
+    // 按 NOTIF_STATE.corner 决定出现角落（经典布局仅左上/左下）；
+    // 同角落已有卡片上限 MAX_TOAST_PER_CORNER=4，新卡进入时旧卡顺移腾位。
+    const MAX_TOAST_PER_CORNER = 4;
+    function showToast(type, title, text, category) {
+      const layer = document.getElementById('toastLayer');
+      if (!layer) return;
+      const corner = cornerAllowed(NOTIF_STATE.corner) ? NOTIF_STATE.corner : 'tl';
+      const cornerEl = document.getElementById('toast' + corner.toUpperCase());
+      if (!cornerEl) return;
+
+      // 容量控制：超过上限，强制让最早的离场（leaving 动画由 CSS 负责方向）
+      const existing = Array.from(cornerEl.querySelectorAll('.toast-item:not(.leaving)'));
+      if (existing.length >= MAX_TOAST_PER_CORNER) {
+        dismissToast(existing[0]);
+      }
+
+      const el = document.createElement('div');
+      el.className = 'toast-item ' + (type || 'info');
+      el.innerHTML = `<svg class="t-icon" aria-hidden="true"><use href="${NOTIF_CAT_ICON[type] || NOTIF_CAT_ICON[category] || '#icon-info'}"></use></svg>` +
+        `<div class="t-body"><div class="t-title">${escapeHtml(title)}</div><div>${text}</div></div>` +
+        `<span class="t-close" title="关闭">✕</span>`;
+      const close = () => dismissToast(el);
+      el.querySelector('.t-close').addEventListener('click', close);
+      cornerEl.appendChild(el);
+      // 触发进入动画：强制 reflow 后再 add .show（确保 transition 一定生效，
+      // 避免窗口最小化/后台时 rAF 被节流导致 .show 永远不加上、卡片不显示）。
+      // 堆叠完全交给 .corner 的 flex column + gap 自动处理，无需 transform 顺移，
+      // 杜绝"快速连发时 transition 互相打断导致位置错位"的问题。
+      void el.offsetHeight;
+      el.classList.add('show');
+      const dur = optsDuration(text);
+      el._timer = setTimeout(close, dur);
+    }
+    function optsDuration(text) {
+      // 文本越长停留越久，5s 起，最长 9s
+      const len = (stripTags(text) || '').length;
+      return Math.min(9000, 5000 + Math.floor(len / 12) * 500);
+    }
+    function dismissToast(el) {
+      if (!el || el._dismissed) return;
+      el._dismissed = true;
+      clearTimeout(el._timer);
+      el.classList.remove('show');
+      el.classList.add('leaving');
+      // 先取 cornerEl 再 removeChild（removeChild 之后 el.parentNode 变为 null）。
+      // 不再需要手动清 shifted-* class —— 改用 flex 自然堆叠，transform 不会残留。
+      setTimeout(() => {
+        const cornerEl = el.parentNode;
+        if (cornerEl) cornerEl.removeChild(el);
+      }, 520);
+    }
+
+    // ---- 顶部胶囊（居中常驻，避免遮挡面板内容区） ----
+    // 设计原则（参照需求「功能似乎和通知中心有些重叠」）：
+    //  - 折叠区（#agentHeaderCapsule）只展示「实时未完成」的胶囊消息，不做第二个消息列表；
+    //  - 所有胶囊消息最终都会进入 NOTIF_STATE.history（通知中心），折叠区自动消失后即视为已并入通知中心；
+    //  - 折叠区的 ◂ ▸ 仅用于在「尚未消失」的实时消息之间切换，不长期保留独立历史。
+    let capsuleTimer = null;
+    // foldedLive[]：当前折叠区内待轮播的「实时消息」条目（轻量对象，自动消失后清空，不长期留存）
+    let foldedLive = [];
+    let foldedLiveIdx = 0;
+    function showCapsule(type, text, opts) {
+      const container = document.getElementById('topNoticeContainer');
+      if (!container) return;
+      const persist = !!(opts && opts.persist); // 常驻型（如 AI 思考中）；opts 可能为空，需防止 undefined.persist
       let el = document.getElementById('systemToast');
       if (!el) {
-        el = document.createElement('div');
-        el.id = 'systemToast';
-        Object.assign(el.style, {
-          background: 'linear-gradient(135deg, rgba(124,140,250,0.22), rgba(124,140,250,0.1))',
-          border: '1px solid rgba(124,140,250,0.32)', color: '#9AA7FF',
-          padding: '0.7vh 2vw', borderRadius: '999px', fontSize: '1.1vw',
-          fontWeight: '500', opacity: '0', transition: 'opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1)',
-          whiteSpace: 'nowrap', boxShadow: '0 4px 18px rgba(0,0,0,0.3)'
-        });
-        container.appendChild(el);
+        const div = document.createElement('div');
+        div.id = 'systemToast';
+        div.className = 'system-toast';
+        container.appendChild(div);
       }
-      el.innerHTML = text;
-      el.style.opacity = '1';
-      clearTimeout(el._t);
-      el._t = setTimeout(() => {el.style.opacity = '0';}, 3500);
+      const node = document.getElementById('systemToast');
+      node.className = 'system-toast ' + (type && type !== 'info' ? 'tone-' + type : '');
+      node.innerHTML = `${text}`;
+      node.style.display = 'inline-flex';
+      node.classList.add('show');
+      clearTimeout(capsuleTimer);
+      if (!persist) {
+        capsuleTimer = setTimeout(() => { node.classList.remove('show'); }, 4000);
+      }
+      updateCapsuleLayout();
     }
+    // 把一条胶囊消息登记为「实时消息」：用于折叠区轮播展示（非 persist 的短暂提示才进轮播）
+    function pushFoldedLive(type, text) {
+      const plain = (stripTags(text) || '').trim() || text;
+      if (!plain) return;
+      foldedLive.push({type, text: plain});
+      if (foldedLive.length > 30) foldedLive.shift();
+      foldedLiveIdx = foldedLive.length - 1;
+    }
+    // 胶囊自适应（仅在胶囊模式生效）：面板被拖得过高（≥0.85 遮罩高度）时，
+    // 居中胶囊收进面板 header 内 #agentHeaderCapsule，仅展示当前实时消息（◂ ▸ 翻看多条）。
+    function updateCapsuleLayout() {
+      const headerCap = document.getElementById('agentHeaderCapsule');
+      const node = document.getElementById('systemToast');
+      const panel = document.getElementById('agentPanel');
+      const capsuleMode = NOTIF_STATE.style === 'capsule';
+      if (!capsuleMode) {
+        if (headerCap) { headerCap.style.display = 'none'; headerCap.classList.remove('fading'); }
+        if (node) node.style.display = '';
+        if (capsuleTickerTimer) { clearTimeout(capsuleTickerTimer); capsuleTickerTimer = null; }
+        return;
+      }
+      const overlayH = window.innerHeight || 1;
+      const panelOpen = panel && panel.classList.contains('open');
+      const panelH = panel ? panel.getBoundingClientRect().height : 0;
+      const collapsed = panelOpen && (panelH / overlayH) >= 0.85;
+      const ticker = document.getElementById('notifTicker');
+      if (collapsed) {
+        if (node) node.style.display = 'none';        // 隐藏居中胶囊，改由 header 区展示
+        if (headerCap) { headerCap.style.display = 'flex'; headerCap.classList.remove('fading'); }
+        if (ticker) renderCapsuleTicker();
+        scheduleTickerAutoDismiss();                  // 5s 后清空展示（消息已并入通知中心）
+      } else {
+        if (node) node.style.display = '';            // 恢复正常居中胶囊
+        if (headerCap) { headerCap.style.display = 'none'; headerCap.classList.remove('fading'); }
+        if (ticker) ticker.textContent = '';
+        const cnt = document.getElementById('notifTickerCount');
+        if (cnt) cnt.textContent = '';
+        if (capsuleTickerTimer) { clearTimeout(capsuleTickerTimer); capsuleTickerTimer = null; }
+      }
+    }
+    // 折叠区胶囊 5s 自动消失：仅清空当前实时展示，并把这批实时消息并入通知中心（已写入 history），
+    // 随后清空 foldedLive，避免折叠区成为第二个消息列表（与通知中心重叠）。
+    let capsuleTickerTimer = null;
+    function scheduleTickerAutoDismiss() {
+      if (capsuleTickerTimer) { clearTimeout(capsuleTickerTimer); capsuleTickerTimer = null; }
+      const headerCap = document.getElementById('agentHeaderCapsule');
+      if (!headerCap || headerCap.style.display === 'none') return;  // 未折叠，无需自动消失
+      capsuleTickerTimer = setTimeout(() => {
+        const headerCap2 = document.getElementById('agentHeaderCapsule');
+        const ticker2 = document.getElementById('notifTicker');
+        const cnt2 = document.getElementById('notifTickerCount');
+        // 若计时期间面板被收起（折叠区已隐藏）或被切到别的状态，不再强行操作
+        if (!headerCap2 || headerCap2.style.display === 'none') { capsuleTickerTimer = null; return; }
+        if (ticker2) ticker2.textContent = '';
+        if (cnt2) cnt2.textContent = '';
+        // 实时消息已随 notify() 写入通知中心，这里仅清空本地轮播缓存，避免与通知中心重复
+        foldedLive = [];
+        foldedLiveIdx = 0;
+        capsuleTickerTimer = null;
+      }, 5000);
+    }
+    function renderCapsuleTicker() {
+      const ticker = document.getElementById('notifTicker');
+      const cnt = document.getElementById('notifTickerCount');
+      if (!ticker) return;
+      if (!foldedLive.length) { ticker.textContent = ''; if (cnt) cnt.textContent = ''; return; }
+      foldedLiveIdx = Math.max(0, Math.min(foldedLiveIdx, foldedLive.length - 1));
+      ticker.textContent = foldedLive[foldedLiveIdx].text;
+      if (cnt) cnt.textContent = (foldedLiveIdx + 1) + '/' + foldedLive.length;
+    }
+    function capsuleNotifPrev() { if (foldedLive.length) { foldedLiveIdx = (foldedLiveIdx - 1 + foldedLive.length) % foldedLive.length; renderCapsuleTicker(); } }
+    function capsuleNotifNext() { if (foldedLive.length) { foldedLiveIdx = (foldedLiveIdx + 1) % foldedLive.length; renderCapsuleTicker(); } }
+    // 兼容旧调用：showSystemToast(text) 走胶囊；同时写入通知中心，保证折叠消失后消息不丢
+    function showSystemToast(text, opts) {
+      if (NOTIF_STATE.style === 'toast') {
+        notify('info', text, Object.assign({category: 'system'}, opts));
+      } else {
+        // 胶囊模式：统一经 notify() 落通知中心，showCapsule 仅负责视觉；非 persist 的短暂提示额外进折叠轮播
+        const wasPersist = !!(opts && opts.persist);
+        notify('info', text, Object.assign({category: 'system'}, opts));
+        if (!wasPersist) pushFoldedLive('info', text);
+      }
+    }
+
+    // ============================================================
+    // 通知中心
+    // ============================================================
+    let ncOpen = false;
+    let ncMode = 'popup';   // 'popup'（铃铛点击，不互斥/可变高度）| 'drag'（右侧拖拽，互斥/固定 0.95）
+    // 标记当前是否处于「拖拽手势」流程中；用于区分「拖拽松手」与「点击外部」，避免误关
+    let ncDragActive = false;
+    // 收口通知中心高度：
+    // - drag(pinned) 模式：固定锁定为视口 0.95 高度
+    // - popup 模式：可变高度，仅清内联高度让 CSS 自适应（兜底上限防溢出）
+    function clampNotifyCenterHeight(mode) {
+      const nc = document.getElementById('notifyCenter');
+      if (!nc) return;
+      if (mode === 'drag') nc.style.maxHeight = Math.floor(window.innerHeight * 0.95) + 'px';
+      else nc.style.maxHeight = '';
+    }
+    // 通知中心打开时，按当前模式重新收口高度并（popup）重新定位到铃铛：
+    // 使高度 / 位置随面板布局、窗口尺寸、内容变化实时跟随
+    function repositionNotifyCenter() {
+      if (!ncOpen) return;
+      const nc = document.getElementById('notifyCenter');
+      if (!nc) return;
+      clampNotifyCenterHeight(ncMode);
+      if (ncMode === 'popup') positionNotifyNearBell(nc);
+    }
+    // 直接关闭助手面板（不走 toggleAgent，避免回调通知中心造成互相关闭的连锁）
+    function forceCloseAgent() {
+      if (typeof isAgentOpen === 'undefined' || !isAgentOpen) return;
+      isAgentOpen = false;
+      const panel = document.getElementById('agentPanel');
+      if (panel) panel.classList.remove('open');
+      document.body.classList.remove('agent-open', 'site-view');
+      if (window.utils && window.utils.setSiteView) window.utils.setSiteView(false);
+      updatePanelOpenClass();
+    }
+    // 拖拽(pinned)模式专用：关闭其它面板（专注助手 / 待办），保证与二者互斥、不抢位
+    function closeOtherPanelsForNc() {
+      forceCloseAgent();
+      const tp = document.getElementById('todoPanel');
+      if (tp && tp.classList.contains('open')) closeTodoPanel();
+    }
+    // 打开通知中心
+    //  mode: 'drag'  → 右侧拖拽唤出：互斥（关助手/待办）、固定 0.95 高度、带遮罩、居中偏右
+    //        'popup' → 铃铛/✕ 点击弹出：不互斥、可变高度（内容自适应）、右上角气泡、无遮罩
+    function setNotifyCenter(open, mode) {
+      const nc = document.getElementById('notifyCenter');
+      const scrim = document.getElementById('ncScrim');
+      if (open === ncOpen && (mode || ncMode) === (ncMode || mode)) {
+        if (scrim) scrim.classList.toggle('show', open && ncMode === 'drag');
+        return;
+      }
+      ncOpen = open;
+      ncMode = open ? (mode || 'popup') : ncMode;
+      if (nc) {
+        nc.classList.toggle('open', open);
+        nc.classList.toggle('pinned', open && ncMode === 'drag');
+        if (open) {
+          clampNotifyCenterHeight(ncMode);
+          // popup 模式：定位到铃铛按钮附近（左下方）；drag 模式：居中偏右由 .pinned 决定
+          if (ncMode === 'popup') positionNotifyNearBell(nc);
+          else { nc.style.right = ''; nc.style.top = ''; }  // 清除 popup 内联定位
+          renderNotifyLive(); renderNotifyHistory(); bumpUnread();
+          // popup 模式挂外部点击关闭监听；drag 由遮罩负责，无需此监听
+          if (ncMode === 'popup') document.addEventListener('pointerdown', onNcOutsidePointer, true);
+        } else {
+          // 清除内联高度；但保留 popup 的 right/top 内联定位，避免关闭时面板从铃铛跳回右上角闪一下
+          // （drag 模式无内联 right/top，下次打开会由 .pinned 重新决定位置）
+          nc.style.maxHeight = '';
+          if (ncMode !== 'popup') { nc.style.right = ''; nc.style.top = ''; }
+          document.removeEventListener('pointerdown', onNcOutsidePointer, true);
+        }
+      }
+      // 仅 drag 模式显示遮罩；popup 模式无遮罩（不互斥，可同时看面板）
+      if (scrim) scrim.classList.toggle('show', open && ncMode === 'drag');
+      // 互斥仅适用于 drag 模式
+      if (open && ncMode === 'drag') closeOtherPanelsForNc();
+    }
+    // 铃铛 / ✕ 点击：切换通知中心（popup 模式：不互斥、可变高度、右上角）
+    function toggleNotifyCenter() {
+      if (ncOpen) setNotifyCenter(false);
+      else setNotifyCenter(true, 'popup');
+    }
+    // popup 模式：把通知中心放到通知按钮（#panelNotifyBtn）左下方（贴近按钮），按钮不可见时回退右上角
+    function positionNotifyNearBell(nc) {
+      const btn = document.getElementById('panelNotifyBtn');
+      const vw = window.innerWidth, vh = window.innerHeight;
+      const W = Math.min(460, Math.max(340, vw * 0.30)); // 与 CSS width 对应
+      let right, top;
+      const useFallback = !btn;
+      if (!useFallback) {
+        const r = btn.getBoundingClientRect();
+        if (!(r.width && r.height && r.right > 0 && r.bottom > 0)) {
+          // 按钮不可见（被遮挡/未渲染）：回退右上角
+          right = Math.max(8, vw * 0.02); top = Math.max(8, vh * 0.06);
+        } else {
+          // 面板右缘比按钮右缘再内缩 8px，使其落在按钮左下方
+          right = Math.max(8, vw - (r.right + 8));
+          top = Math.max(8, r.bottom + 8);
+          if (vw - right - W < 8) right = Math.max(8, vw - W - 8); // 右空间不足则整体左移
+          if (top > vh - 8) top = vh - 8;                          // 防底部溢出
+        }
+      } else {
+        right = Math.max(8, vw * 0.02); top = Math.max(8, vh * 0.06);
+      }
+      // 高度随按钮 / 面板位置自适应：上限取按钮下方可用空间（而非整屏 max-height），避免溢出视口底部
+      nc.style.maxHeight = Math.max(160, vh - top - 12) + 'px';
+      nc.style.right = right + 'px';
+      nc.style.top = top + 'px';
+    }
+    // 遮罩点击关闭：仅在真实外部点击时触发，拖拽松手不会被误判（仅 drag 模式有遮罩）
+    function onNcScrimClick(e) {
+      if (ncDragActive) return;           // 拖拽流程中，不做为外部点击
+      if (e.target !== e.currentTarget) return; // 只响应遮罩本身，不响应冒泡
+      setNotifyCenter(false);
+    }
+    // popup 模式外部点击关闭：点击通知中心与铃铛以外的区域即关闭
+    function onNcOutsidePointer(e) {
+      if (!ncOpen || ncMode !== 'popup') return;
+      const nc = document.getElementById('notifyCenter');
+      const btn = document.getElementById('panelNotifyBtn');
+      if (nc && nc.contains(e.target)) return;          // 点在面板内
+      if (btn && btn.contains(e.target)) return;         // 点在通知按钮上（由 toggleNotifyCenter 处理）
+      setNotifyCenter(false);
+    }
+
+    // ===== 右侧边缘拖拽唤出通知中心 =====
+    const NC_DRAG_THRESHOLD = 48;   // 向左拖拽超过该像素即唤出（阈值略降，更易触发）
+    function bindNcEdgeZone() {
+      const zone = document.getElementById('ncEdgeZone');
+      if (!zone || zone._bound) return;
+      zone._bound = true;
+      let startX = 0, startY = 0, dragging = false, decided = false, pointerId = null;
+      const onDown = (e) => {
+        // 仅在开启开关、modern 视图、且通知中心未打开时可拖拽
+        if (!NOTIF_STATE.dragOpen || document.body.classList.contains('layout-legacy') || ncOpen) return;
+        if (e.button !== undefined && e.button !== 0) return;
+        dragging = true; decided = false;
+        startX = e.clientX; startY = e.clientY;
+        pointerId = e.pointerId;
+        ncDragActive = true;        // 进入拖拽流程：此后即使松手也不视为外部点击
+        zone.classList.add('dragging');
+        try { zone.setPointerCapture(pointerId); } catch (_) {}
+        e.preventDefault();
+      };
+      const onMove = (e) => {
+        if (!dragging) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        if (!decided) {
+          if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) decided = true;
+          else if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 12) {
+            dragging = false; ncDragActive = false; zone.classList.remove('dragging');
+            try { zone.releasePointerCapture(pointerId); } catch (_) {}
+            return;
+          }
+        }
+        if (decided && dx <= -NC_DRAG_THRESHOLD && !ncOpen) {
+          dragging = false; zone.classList.remove('dragging');
+          try { zone.releasePointerCapture(pointerId); } catch (_) {}
+          setNotifyCenter(true, 'drag');
+          setTimeout(() => { ncDragActive = false; }, 80);
+        }
+      };
+      const onUp = () => {
+        if (!dragging) return;
+        dragging = false; zone.classList.remove('dragging');
+        try { zone.releasePointerCapture(pointerId); } catch (_) {}
+        setTimeout(() => { ncDragActive = false; }, 80);
+      };
+      // Electron 内置 Chromium 必然支持 PointerEvent，mouse 事件由 pointer 模拟产生，无需重复绑定
+      zone.addEventListener('pointerdown', onDown);
+      zone.addEventListener('pointermove', onMove);
+      zone.addEventListener('pointerup', onUp);
+      zone.addEventListener('pointercancel', onUp);
+    }
+    function bumpUnread() {
+      const unread = NOTIF_STATE.history.filter(h => !h.read).length;
+      const btn = document.getElementById('panelNotifyBtn');
+      const dot = document.getElementById('nbDot');
+      const showDot = unread > 0 && !NOTIF_STATE.dotHidden;
+      if (btn) btn.classList.toggle('has-unread', showDot);
+      if (dot) {
+        dot.textContent = unread > 99 ? '99+' : (unread || '');
+        dot.classList.toggle('show', showDot);
+      }
+    }
+    function markAllNotifRead() {
+      NOTIF_STATE.history.forEach(h => h.read = true);
+      renderNotifyHistory();
+      bumpUnread();
+    }
+    // 单条标记已读：按历史 id 精确命中；不重建列表，直接原地更新 DOM（避免动画重置 + 滚轮位置跳动）
+    function markNotifRead(id) {
+      let target = null;
+      for (const h of NOTIF_STATE.history) {
+        if (h.id === id) { if (h.read) return; h.read = true; target = h; break; }
+      }
+      if (!target) return;
+      const list = document.getElementById('ncList');
+      const node = list && list.querySelector(`.nc-item[data-id="${id}"]`);
+      if (node) {
+        node.classList.remove('unread');
+        node.classList.add('read');
+        const btn = node.querySelector('.nc-mark-read');
+        if (btn) btn.style.display = 'none';
+      }
+      bumpUnread();
+    }
+    function clearNotifHistory() {
+      NOTIF_STATE.history = [];
+      renderNotifyHistory();
+      bumpUnread();
+    }
+    function setNotifFilter(cat) {
+      NOTIF_STATE.filter = cat;
+      document.querySelectorAll('#ncFilters .nc-filter').forEach(f => f.classList.toggle('active', f.dataset.cat === cat));
+      renderNotifyHistory();
+    }
+    function renderNotifyHistory() {
+      bindNcMarkReadDelegation();   // 幂等的一次性事件委托
+      const list = document.getElementById('ncList');
+      if (!list) return;
+      const cat = NOTIF_STATE.filter;
+      let items = NOTIF_STATE.history.filter(h => cat === 'all' || h.category === cat);
+      // 常驻置顶项（pinned）永远排在列表最前，便于在通知中心一眼看到持续状态
+      const pinned = items.filter(h => h.pinned);
+      const normal = items.filter(h => !h.pinned);
+      items = pinned.concat(normal);
+      if (!items.length) {
+        list.innerHTML = '<div class="  nc-empty">暂无通知记录</div>';
+        return;
+      }
+      list.innerHTML = items.map(h => {
+        const time = new Date(h.time);
+        const hh = String(time.getHours()).padStart(2,'0');
+        const mm = String(time.getMinutes()).padStart(2,'0');
+        const ss = String(time.getSeconds()).padStart(2,'0');
+        const icon = NOTIF_CAT_ICON[h.type] || NOTIF_CAT_ICON[h.category] || '#icon-info';
+        const readCls = h.read ? 'read' : 'unread';
+        const pinCls = h.pinned ? 'pinned' : '';
+        const btnDisplay = h.read || h.pinned ? 'display:none' : '';
+        return `<div class="nc-item ${h.type !== 'info' ? h.type : ''} ${readCls} ${pinCls}" data-id="${h.id}">
+          <svg class="nc-ic" aria-hidden="true"><use href="${icon}"></use></svg>
+          <div class="nc-main">
+            <div class="nc-cat">${escapeHtml(NOTIF_CAT_LABEL[h.category] || '系统')}${h.pinned ? ' · 常驻' : ''}</div>
+            <div class="nc-text">${escapeHtml(h.text)}</div>
+            <div class="nc-time">${hh}:${mm}:${ss}</div>
+          </div>
+          <button class="nc-mark-read" type="button" title="标记为已读" style="${btnDisplay}">✓</button>
+        </div>`;
+      }).join('');
+    }
+    // 单条标记已读：事件委托到 #ncList 上，一次绑定即可（不每行挂监听）
+    function bindNcMarkReadDelegation() {
+      const list = document.getElementById('ncList');
+      if (!list || list._mrBound) return;
+      list._mrBound = true;
+      list.addEventListener('click', (e) => {
+        const btn = e.target && e.target.closest && e.target.closest('.nc-mark-read');
+        if (!btn) return;
+        e.stopPropagation();
+        const item = btn.closest('.nc-item');
+        const id = item && item.dataset && Number(item.dataset.id);
+        if (Number.isFinite(id)) markNotifRead(id);
+      });
+    }
+    // 实时状态区（倒计时 / 番茄钟 / 延长锁屏）——由事件驱动刷新
+    let liveState = {timer: null, pomodoro: null, extend: 0};
+    // 实时状态 provider：按注册（传参）顺序在通知中心顶部常驻置顶展示
+    const liveProviders = [];
+    function registerLiveProvider(id, getRow) {
+      if (!liveProviders.some(p => p.id === id)) liveProviders.push({id, getRow});
+    }
+    // 初始注册顺序（全部常驻置顶，多者按此传参顺序排）：
+    // 模式提示 → 倒计时 → 番茄钟（计时器） → 延长锁屏
+    // 模式提示（测试 / 即时 / 快速启动）：与顶部胶囊提示同步，激活者逐行置顶显示
+    registerLiveProvider('mode', () => {
+      const rows = [];
+      const t = document.getElementById('testNotice');
+      const q = document.getElementById('quickNotice');
+      const i = document.getElementById('instantNotice');
+      if (t && (t.style.display === 'block' || t.style.display === 'flex')) {
+        rows.push(liveRow('#icon-test', '测试模式（按 Esc 退出）', '进行中', false));
+      }
+      if (i && (i.style.display === 'block' || i.style.display === 'flex')) {
+        rows.push(liveRow('#icon-quick', '即时模式（Esc / 快捷键退出）', '进行中', false));
+      }
+      if (q && (q.style.display === 'block' || q.style.display === 'flex')) {
+        rows.push(liveRow('#icon-quick', '快速启动模式', '进行中', false));
+      }
+      return rows.length ? rows.join('') : null;
+    });
+    registerLiveProvider('timer', () => {
+      if (!timerInfo) return null;
+      const rem = timerSecondsLeft();
+      const urgent = timerInfo.totalSeconds > 5*60 && rem <= 5*60;
+      return liveRow('#icon-alarm', '倒计时' + (timerInfo.label && timerInfo.label !== '倒计时' ? `：${escapeHtml(timerInfo.label)}` : ''), formatMMSS(rem), urgent);
+    });
+    registerLiveProvider('pomodoro', () => {
+      if (!pomodoroState || pomodoroState.mode === 'idle') return null;
+      const rem = pomodoroState.mode === 'idle' ? pomodoroState.focusLen*60 : pomodoroState.remaining;
+      return liveRow('#icon-focus', '番茄钟：' + (pomodoroState.running ? '进行中' : '暂停'), formatMMSS(rem), false);
+    });
+    registerLiveProvider('extend', () => {
+      if (liveState.extend <= 0) return null;
+      return liveRow('#icon-lock', '延长锁屏剩余', formatMMSS(liveState.extend), liveState.extend <= 30);
+    });
+    function renderNotifyLive() {
+      const body = document.getElementById('ncLiveBody');
+      if (!body) return;
+      // 按 provider 注册顺序收集非空行（常驻置顶，多者按传参顺序排）
+      const rows = [];
+      for (const p of liveProviders) {
+        try {
+          const r = p.getRow();
+          if (r) rows.push(r);
+        } catch (e) {}
+      }
+      body.innerHTML = rows.length ? rows.join('') : '<div class="nc-live-empty">暂无进行中的计时 / 锁屏</div>';
+    }
+    function liveRow(icon, label, value, urgent) {
+      return `<div class="nc-live-row ${urgent ? 'urgent' : ''}">
+        <svg class="nc-lr-icon" aria-hidden="true"><use href="${icon}"></use></svg>
+        <span class="nc-lr-label">${label}</span>
+        <span class="nc-lr-value">${value}</span>
+      </div>`;
+    }
+    // 实时区每秒刷新（挂载到主时钟）
+    function tickNotifyLive() {
+      if (ncOpen) {
+        renderNotifyLive();
+        clampNotifyCenterHeight(ncMode);
+        if (ncMode === 'popup') { const nc = document.getElementById('notifyCenter'); if (nc) positionNotifyNearBell(nc); }
+      }
+    }
+    // 窗口尺寸变化时，若通知中心打开则重新收口，避免底部溢出屏幕
+    window.addEventListener('resize', () => {
+      updateCapsuleLayout();
+      repositionNotifyCenter();
+    });
+    // 监听铃铛所在面板（代理面板）尺寸变化：面板高度改变时同步重新定位 / 收口通知中心
+    (function () {
+      const _ncPanel = document.getElementById('agentPanel');
+      if (_ncPanel && typeof ResizeObserver !== 'undefined') {
+        new ResizeObserver(() => repositionNotifyCenter()).observe(_ncPanel);
+      }
+    })();
 
     // ---- 番茄钟 / 专注统计 ----
     let pomodoroState = null;
@@ -6369,6 +7811,7 @@
       else modeEl.textContent = '待机';
       document.getElementById('pomodoroBtn').textContent =
         state.mode === 'idle' ? '开始' : (state.running ? '暂停' : '继续');
+      renderNotifyLive();
     }
 
     async function togglePomodoro() {
@@ -6393,7 +7836,7 @@
         const label = to === 'break'
           ? '专注完成，休息一下吧！'
           : '休息结束，开始新一轮专注！';
-        showSystemToast(label);
+        notify(to === 'break' ? 'success' : 'info', label, {category: 'system', title: '番茄钟'});
       });
       window.utils.getPomodoroState().then(updatePomodoroUI).catch(() => { });
     }
@@ -6986,20 +8429,25 @@
     function updateSiteStageName() {
       const el = document.getElementById('siteStageName');
       if (el) el.textContent = currentSiteName || '网站';
+      // 有正在展示的网页时才标记 site-active（透明刷满）；否则展示占位引导框
+      const hasSite = !!(currentSiteName && siteList && siteList.length && siteList.some(s => s.name === currentSiteName && s.url));
+      document.body.classList.toggle('site-active', !!hasSite);
     }
 
     // 同步网站面板内容区坐标到主进程（BrowserView 铺在该区域，header 保持可点击）
+    // 上报完整 site-stage 包围盒 (left/top/width/height)，主进程据此精确放置 BrowserView，
+    // 避免硬编码「底部预留 dock 72px / 右侧预留 NC_EDGE 22px」造成网站右侧/底部空白。
     function syncSitePanelBounds() {
-      const panel = document.getElementById('agentPanel');
-      const header = document.querySelector('.agent-header');
-      if (!panel || !header || !document.body.classList.contains('site-view')) return;
-      const prect = panel.getBoundingClientRect();
-      const hrect = header.getBoundingClientRect();
-      const top = Math.round(hrect.bottom);
-      const height = Math.round(prect.bottom - hrect.bottom);
-      if (height < 40 || top < 0) return;
+      const stage = document.querySelector('.site-stage') || document.querySelector('.site-page');
+      if (!stage || !document.body.classList.contains('site-view')) return;
+      const r = stage.getBoundingClientRect();
+      const left = Math.round(r.left);
+      const top = Math.round(r.top);
+      const width = Math.round(r.width);
+      const height = Math.round(r.height);
+      if (width <= 0 || height < 40) return;
       if (window.utils && window.utils.setSitePanelBounds) {
-        window.utils.setSitePanelBounds({top, height});
+        window.utils.setSitePanelBounds({left, top, width, height});
       }
     }
 
@@ -7704,6 +9152,9 @@
           const cfg = await window.utils.getConfigForEdit();
           if (cfg && !cfg.error) applyInstantModeEnabled(cfg.instantModeEnabled === true);
         } catch (e) { }
+        // 通知样式偏好（来自主进程持久化，localStorage 兜底）
+        await loadNotifPrefs();
+        // 拖拽热区已在启动流程（DOMContentLoaded）绑定，此处无需重复调用
       } catch (e) {console.error('读取设置失败', e);}
     }
 
@@ -7744,7 +9195,8 @@
       {action: 'toggleAgent', label: '专注助手'},
       {action: 'extendLock', label: '延长锁屏'},
       {action: 'toggleSiteLock', label: '锁定网站'},
-      {action: 'relock', label: '立即重新锁定'}
+      {action: 'relock', label: '立即重新锁定'},
+      {action: 'captureScreenshot', label: '遮罩截屏'}
     ];
     let currentShortcuts = {};
 
@@ -7823,7 +9275,7 @@
       const l1 = document.getElementById('shortcutHintLine1');
       const l2 = document.getElementById('shortcutHintLine2');
       if (l1) l1.textContent = `切换网站: ${fmt(s.switchSite)} · 置顶: ${fmt(s.toggleAlwaysOnTop)} · 紧急退出: ${fmt(s.emergencyExit)}`;
-      if (l2) l2.textContent = `延长: ${fmt(s.extendLock)} · 专注助手: ${fmt(s.toggleAgent)} · 锁定网站: ${fmt(s.toggleSiteLock)} · 重新锁定: ${fmt(s.relock)}`;
+      if (l2) l2.textContent = `延长: ${fmt(s.extendLock)} · 专注助手: ${fmt(s.toggleAgent)} · 锁定网站: ${fmt(s.toggleSiteLock)} · 重新锁定: ${fmt(s.relock)} · 截屏: ${fmt(s.captureScreenshot)}`;
     }
 
     // ---- 遮罩内编辑 config.js ----
@@ -8111,6 +9563,57 @@
       }
     }
 
+    // ---- 数据备份 / 导入 ----
+    async function exportAllData() {
+      const msg = document.getElementById('backupMsg');
+      const keys = Array.from(document.querySelectorAll('.bk-ds:checked')).map(c => c.value);
+      if (!keys.length) {
+        msg.textContent = '请至少选择一项要导出的数据';
+        showSystemToast('请至少选择一项要导出的数据');
+        return;
+      }
+      const includeMedia = document.getElementById('bkIncludeMedia').checked;
+      msg.textContent = '正在导出数据…';
+      // 兜底：90s 内主进程未响应则给出提示，避免界面永久卡在「正在导出数据…」
+      const guard = setTimeout(() => {
+        msg.textContent = '导出超时（可能会话存储异常），请查看日志或重启后重试';
+      }, 90000);
+      try {
+        const res = await window.utils.exportAllData({ selectedKeys: keys, includeMedia });
+        clearTimeout(guard);
+        if (res && res.canceled) { msg.textContent = ''; return; }
+        if (res && res.success) {
+          msg.textContent = '已导出：' + res.path;
+          showSystemToast('<svg class="icon" aria-hidden="true"><use href="#icon-success"></use></svg> 数据已导出');
+        } else {
+          msg.textContent = '导出失败：' + ((res && res.error) || '未知错误');
+        }
+      } catch (e) {
+        clearTimeout(guard);
+        msg.textContent = '导出异常：' + (e && e.message ? e.message : e);
+      }
+    }
+
+    async function importAllData() {
+      if (!window.confirm('导入会覆盖当前同名数据（设置、Cookie、文件库、环境音等），且需重启应用生效。确定继续？')) return;
+      const msg = document.getElementById('backupMsg');
+      msg.textContent = '正在导入…';
+      try {
+        const res = await window.utils.importAllData();
+        if (res && res.canceled) { msg.textContent = ''; return; }
+        if (res && res.success) {
+          let t = '导入完成，请重启应用使配置与登录态生效';
+          if (res.errors && res.errors.length) t += '（部分失败：' + res.errors.join('；') + '）';
+          msg.textContent = t;
+          showSystemToast(t);
+        } else {
+          msg.textContent = '导入失败：' + ((res && res.error) || '未知错误');
+        }
+      } catch (e) {
+        msg.textContent = '导入异常：' + e.message;
+      }
+    }
+
     // ---- 强化锁定提示 ----
     window.utils.onEmergencyBlocked((data) => {
       if (data && data.reason === 'minLock') {
@@ -8133,17 +9636,59 @@
       if (modal) modal.classList.remove('show');
     }
 
-    // ---- 锁屏时段已结束但每日任务未达标：常驻提示条 ----
+    // ---- 锁屏时段已结束但每日任务未达标 ----
+    // 现代模式：保留顶部常驻提示条 dailyTaskBanner（置于浏览器视图之上）。
+    // 经典模式：浏览器视图铺满右侧，顶部提示条会被遮挡，故改为「通知中心常驻条目 + 每 5 分钟桌面 toast」。
+    let dailyBlockLegacyTimer = null;
     window.utils.onDailyTaskBlocking((data) => {
-      const banner = document.getElementById('dailyTaskBanner');
-      if (!banner) return;
-      if (data && data.total > 0) {
-        const text = document.getElementById('dailyTaskBannerText');
-        if (text) text.textContent = `锁屏时间已结束，请完成每日任务（已完成 ${data.completed}/${data.total}，需完成 ${data.need} 项）后解除锁定`;
+      // 防御：未配置每日任务（total=0）时永不提示（主进程 met=true 不会发此事件，双保险）
+      if (!data || !data.total || data.total <= 0) {
+        stopDailyBlockLegacy();
+        const banner = document.getElementById('dailyTaskBanner');
+        if (banner) banner.classList.remove('show');
+        return;
       }
-      banner.classList.add('show');
+      const html = `锁屏时间已结束，请完成每日任务（已完成 ${data.completed}/${data.total}，需完成 ${data.need} 项）后解除锁定`;
+      const isLegacy = document.body.classList.contains('layout-legacy');
+
+      // ---- 顶部 banner（仅现代模式：浏览器视图不遮挡）----
+      const banner = document.getElementById('dailyTaskBanner');
+      const text = document.getElementById('dailyTaskBannerText');
+      if (banner && text) {
+        text.textContent = html;
+        banner.classList.toggle('show', !isLegacy);
+      }
+
+      // ---- 通知中心常驻条目 + 立即 toast（不论布局都加，让通知中心始终能看到这条）----
+      // pinned 同 category 只保留一条，自动更新文案；read=true 避免红点持续打扰
+      notify('warning', html, {
+        category: 'daily',
+        title: '每日任务待完成',
+        read: true,
+        persist: true,
+        pinned: true
+      });
+      showToast('warning', '每日任务待完成', html, 'daily');
+
+      // ---- 经典模式额外加每 5 分钟周期 toast（顶部 banner 会被浏览器视图遮挡）----
+      // modern 模式由 banner 持续提示，无需定时器
+      stopDailyBlockLegacy();
+      if (isLegacy) {
+        dailyBlockLegacyTimer = setInterval(() => {
+          // 再次确认仍处于阻塞态（layout 未切换、未解除），避免泄漏定时器
+          if (!document.body.classList.contains('layout-legacy')) {
+            stopDailyBlockLegacy();
+            return;
+          }
+          showToast('warning', '每日任务待完成', html, 'daily');
+        }, 5 * 60 * 1000);
+      }
     });
+    function stopDailyBlockLegacy() {
+      if (dailyBlockLegacyTimer) { clearInterval(dailyBlockLegacyTimer); dailyBlockLegacyTimer = null; }
+    }
     window.utils.onDailyTaskUnblocked(() => {
+      stopDailyBlockLegacy();
       const banner = document.getElementById('dailyTaskBanner');
       if (banner) banner.classList.remove('show');
     });
@@ -8176,6 +9721,8 @@
       const secSpan = document.getElementById('extendSeconds');
       if (seconds > 0) {info.style.display = 'block'; secSpan.textContent = seconds;}
       else {info.style.display = 'none';}
+      liveState.extend = seconds || 0;
+      renderNotifyLive();
     });
 
     // ---- 文件管理 ----
@@ -8203,7 +9750,8 @@
       const map = {pdf: '[PDF]', docx: '[DOC]', xlsx: '[XLS]', csv: '[CSV]', txt: '[TXT]', md: '[MD]', json: '[JSON]', js: '[JS]', py: '[PY]', html: '[HTML]', css: '[CSS]', jpg: '[IMG]', jpeg: '[IMG]', png: '[IMG]', gif: '[IMG]', webp: '[IMG]'};
       return map[ext] || '[FILE]';
     }
-    function formatSize(chars) {
+    // 将字符数格式化为可读字符串（如 "1.2K 字符"），区别于 formatFileSize（字节）
+    function formatCharCount(chars) {
       if (chars < 1000) return chars + ' 字符';
       if (chars < 10000) return (chars / 1000).toFixed(1) + 'K 字符';
       return (chars / 10000).toFixed(1) + 'W 字符';
@@ -8214,10 +9762,6 @@
       updateAttachedBar();
     }
 
-    function deleteFile(id) {
-      fileStore = fileStore.filter(f => f.id !== id);
-      renderFileList();
-    }
     function clearAllFiles() {
       if (fileStore.length === 0) return;
       if (!confirm(`确定清空全部 ${fileStore.length} 个文件？`)) return;
@@ -8231,7 +9775,7 @@
     }
 
     async function exportFileContent(file) {
-      const header = `/* 文件名: ${file.name} */\n/* 类型: ${file.type} */\n/* 大小: ${formatSize(file.content.length)} */\n\n`;
+      const header = `/* 文件名: ${file.name} */\n/* 类型: ${file.type} */\n/* 大小: ${formatCharCount(file.content.length)} */\n\n`;
       const result = await window.utils.saveFile(header + file.content, file.name);
       if (result) appendMessage(`文件已导出: ${result.fileName}`, 'system');
     }
@@ -8484,7 +10028,7 @@
     }
 
     // 当前打开配置的样式状态
-    let userStyleConfigState = { id: null, vars: [], varValues: {}, enabled: true };
+    let userStyleConfigState = {id: null, vars: [], varValues: {}, enabled: true};
 
     async function openUserStyleConfig(styleId) {
       const r = await window.utils.getUserStyleDetail(styleId);
@@ -8496,7 +10040,7 @@
       userStyleConfigState = {
         id: s.id,
         vars: s.vars || [],
-        varValues: { ...(s.varValues || {}) },
+        varValues: {...(s.varValues || {})},
         enabled: !!s.enabled
       };
       document.getElementById('userStyleConfigTitle').textContent = `${s.name || '用户样式'}${s.version ? `  v${s.version}` : ''}`;
@@ -8542,13 +10086,13 @@
             });
           } else if (v.type === 'select' || v.type === 'dropdown') {
             const sel = body.querySelector(`select[data-var="${v.name}"]`);
-            if (sel) sel.addEventListener('change', e => { userStyleConfigState.varValues[v.name] = e.target.value; });
+            if (sel) sel.addEventListener('change', e => {userStyleConfigState.varValues[v.name] = e.target.value;});
           } else if (v.type === 'text') {
             const tx = body.querySelector(`textarea[data-var="${v.name}"], input[type="text"][data-var="${v.name}"]`);
-            if (tx) tx.addEventListener('input', e => { userStyleConfigState.varValues[v.name] = e.target.value; });
+            if (tx) tx.addEventListener('input', e => {userStyleConfigState.varValues[v.name] = e.target.value;});
           } else if (v.type === 'checkbox') {
             const cb = body.querySelector(`input[type="checkbox"][data-var="${v.name}"]`);
-            if (cb) cb.addEventListener('change', e => { userStyleConfigState.varValues[v.name] = e.target.checked; });
+            if (cb) cb.addEventListener('change', e => {userStyleConfigState.varValues[v.name] = e.target.checked;});
           }
         });
       }
@@ -8559,7 +10103,7 @@
     function closeUserStyleConfigModal() {
       const el = document.getElementById('userStyleConfigModal');
       if (el) el.style.display = 'none';
-      userStyleConfigState = { id: null, vars: [], varValues: {}, enabled: true };
+      userStyleConfigState = {id: null, vars: [], varValues: {}, enabled: true};
     }
 
     function onUserStyleEnabledChanged(checked) {
@@ -8576,7 +10120,7 @@
           ${opts.map(o => `<option value="${escapeAttr(o.value)}" ${String(o.value) === String(value) ? 'selected' : ''}>${escapeHtml(o.label)}</option>`).join('')}
         </select>`;
       } else if (v.type === 'range') {
-        const r = v.range || { min: -100, max: 100, step: 1 };
+        const r = v.range || {min: -100, max: 100, step: 1};
         const n = Number(value);
         ctrl = `<div class="var-range-wrap">
           <input type="range" data-var="${v.name}" min="${r.min}" max="${r.max}" step="${r.step}" value="${n}">
@@ -8621,7 +10165,7 @@
       const s = userStyleConfigState;
       if (!s.id) return;
       try {
-        const r = await window.utils.saveUserStyleOverrides(s.id, { enabled: s.enabled, values: { ...s.varValues } });
+        const r = await window.utils.saveUserStyleOverrides(s.id, {enabled: s.enabled, values: {...s.varValues}});
         if (r && r.success) {
           showSystemToast('<svg class="icon" aria-hidden="true"><use href="#icon-success"></use></svg> 用户样式配置已保存。重载网站后生效。');
           closeUserStyleConfigModal();
@@ -8810,7 +10354,11 @@
 
     function toggleAgent() {
       const panel = document.getElementById('agentPanel');
-      isAgentOpen = !isAgentOpen;
+      const wantOpen = !isAgentOpen;
+      // 打开助手面板时，无论通知中心处于 drag 还是 popup 模式都先关闭它
+      // （popup 模式虽不与面板抢位，但「切换面板」语义下应一并收起；点外部/✕也可关）
+      if (wantOpen && typeof ncOpen !== 'undefined' && ncOpen) setNotifyCenter(false);
+      isAgentOpen = wantOpen;
       panel.classList.toggle('open', isAgentOpen);
       document.body.classList.toggle('agent-open', isAgentOpen);
       if (!isAgentOpen) {
@@ -8818,6 +10366,7 @@
         if (window.utils && window.utils.setSiteView) window.utils.setSiteView(false);
       }
       updatePanelOpenClass();
+      setTimeout(updateCapsuleLayout, 450); // 等面板滑入动画结束后重排胶囊布局
       if (isAgentOpen) {
         document.getElementById('agentInput').focus();
         closeTodoPanel();
@@ -8875,6 +10424,7 @@
         const h = Math.min(maxH, Math.max(minH, startH + dh));
         panel.style.height = h + 'px';
         syncSitePanelBounds();
+        updateCapsuleLayout();
       });
       window.addEventListener('mouseup', () => {
         if (!dragging) return;
@@ -9060,11 +10610,177 @@
       if (result) appendMessage(`对话已导出 (MD): ${result.fileName}`, 'system');
     }
 
+    // ---- 无 API 时的本地指令处理 ----
+    // 未配置 DeepSeek API 时，对以 / 开头的指令做本地自动处理：调用主进程工具并回复「已执行」
+    const LOCAL_CMD_HELP = `**未配置 AI，但你可以使用以下本地指令：**
+
+- \`/add <内容>\` —— 添加待办，如 \`/add 写报告 三月统计\`
+- \`/del <编号|内容>\` —— 删除待办
+- \`/list\` —— 查看今日待办
+- \`/timer <分钟> [备注]\` —— 设置倒计时，如 \`/timer 25 写代码\`
+- \`/pomodoro\` / \`/pause\` / \`/reset\` —— 番茄钟 开始/暂停/重置
+- \`/stats\` —— 今日专注统计
+- \`/quote\` —— 来一句激励格言
+- \`/switch <网站>\` —— 切换网站，如 \`/switch DeepSeek\`
+- \`/extend <分钟>\` —— 延长锁闭时长
+- \`/rain\` \`/fire\` \`/waves\` \`/white\` —— 播放环境音；\`/stop\` 停止
+- \`/screenshot\` —— 截屏并保存到文件库
+- \`/help\` —— 显示本帮助
+
+配置 AI（设置 → DeepSeek API Key）后，我还能陪你聊天、分析文件。`;
+
+    function _stripQuotes(s) {
+      return (s || '').replace(/^["'"]+/, '').replace(/["'"]+$/, '');
+    }
+    function _playAmbientLocal(type) {
+      const names = { rain: '雨声', fire: '篝火', waves: '海浪', white: '白噪音' };
+      startAmbientSound(type, 60);
+      return '🔊 正在播放' + (names[type] || type);
+    }
+    async function handleLocalCommand(rawText) {
+      const trimmed = (rawText || '').trim();
+      if (!trimmed.startsWith('/')) return null;
+      const sp = trimmed.indexOf(' ');
+      const cmd = (sp === -1 ? trimmed : trimmed.slice(0, sp)).toLowerCase();
+      const arg = (sp === -1 ? '' : trimmed.slice(sp + 1)).trim();
+      const argStripped = _stripQuotes(arg);
+
+      switch (cmd) {
+        case '/add':
+        case '/todo': {
+          if (!argStripped) return '⚠️ 请填写待办内容，例如：\n`/add 写报告 三月统计`';
+          todos.push({ text: argStripped, completed: false, pinned: false });
+          await saveTodos();
+          renderTodos();
+          return '✅ 已添加待办：「' + argStripped + '」';
+        }
+        case '/del':
+        case '/delete': {
+          if (!argStripped) return '⚠️ 请指定要删除的待办，例如：\n`/del 写报告` 或 `/del 1`（按列表编号）';
+          const idx = parseInt(argStripped, 10) - 1;
+          if (!isNaN(idx) && idx >= 0 && idx < todos.length) {
+            const removed = todos.splice(idx, 1)[0];
+            await saveTodos(); renderTodos();
+            return '🗑️ 已删除待办：「' + removed.text + '」';
+          }
+          const i = todos.findIndex(t => t.text.includes(argStripped));
+          if (i >= 0) {
+            const removed = todos.splice(i, 1)[0];
+            await saveTodos(); renderTodos();
+            return '🗑️ 已删除待办：「' + removed.text + '」';
+          }
+          return '⚠️ 未找到匹配「' + argStripped + '」的待办';
+        }
+        case '/list':
+        case '/todos': {
+          if (!todos.length) return '📋 当前没有待办，用 `/add` 添加一条吧';
+          return '📋 **今日待办：**\n' + todos.map((t, i) => (i + 1) + '. ' + (t.completed ? '✅' : '⬜') + ' ' + t.text).join('\n');
+        }
+        case '/stats':
+        case '/focus': {
+          try {
+            const data = await window.utils.getFocusStats();
+            let msg = '📊 **专注统计**\n';
+            if (data && typeof data.todayFocusSeconds === 'number') {
+              const s = data.todayFocusSeconds;
+              const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
+              msg += '- 今日专注：' + (h > 0 ? h + ' 小时 ' : '') + m + ' 分钟\n';
+            }
+            if (data && data.stats && typeof data.stats === 'object') {
+              for (const [k, v] of Object.entries(data.stats)) {
+                if (typeof v === 'number' || typeof v === 'string') msg += '- ' + k + '：' + v + '\n';
+              }
+            }
+            return msg;
+          } catch (e) { return '⚠️ 获取专注统计失败：' + e.message; }
+        }
+        case '/quote': {
+          try {
+            const quotes = await window.utils.getQuotes();
+            if (Array.isArray(quotes) && quotes.length) {
+              return '🌟 ' + quotes[Math.floor(Math.random() * quotes.length)];
+            }
+          } catch (e) {}
+          return '🌟 保持专注，你离目标又近了一步。';
+        }
+        case '/timer': {
+          const m = arg.match(/(\d+)/);
+          if (!m) return '⚠️ 请指定分钟数，例如：\n`/timer 25` 或 `/timer 25 写代码`';
+          const minutes = parseInt(m[1], 10);
+          const label = _stripQuotes(arg.replace(/(\d+)/g, '').trim()) || '倒计时';
+          window.utils.setTimer(minutes * 60, label);
+          return '⏱️ 已设置倒计时：**' + label + '**，`' + minutes + ' 分钟后提醒';
+        }
+        case '/pomodoro':
+        case '/focus25': {
+          await window.utils.startPomodoro();
+          return '🍅 番茄钟已开始（专注 25 分钟）';
+        }
+        case '/pause': {
+          await window.utils.pausePomodoro();
+          return '⏸️ 番茄钟已暂停';
+        }
+        case '/reset': {
+          await window.utils.resetPomodoro();
+          return '🔄 番茄钟已重置';
+        }
+        case '/switch': {
+          if (!argStripped) return '⚠️ 请指定要切换的网站，例如：\n`/switch DeepSeek`';
+          try {
+            await window.utils.switchSite(argStripped);
+            return '🔀 已尝试切换网站：**' + argStripped + '**';
+          } catch (e) { return '⚠️ 切换网站失败：' + e.message; }
+        }
+        case '/extend': {
+          const m = arg.match(/(\d+)/);
+          if (!m) return '⚠️ 请指定延长分钟数，例如：\n`/extend 15`';
+          const mins = parseInt(m[1], 10);
+          window.utils.extendLock(mins);
+          return '🔓 已延长锁闭 **' + mins + '** 分钟';
+        }
+        case '/rain': return _playAmbientLocal('rain');
+        case '/fire': return _playAmbientLocal('fire');
+        case '/waves': return _playAmbientLocal('waves');
+        case '/white': return _playAmbientLocal('white');
+        case '/stop': {
+          Object.keys(ambientSoundVols || {}).forEach(t => stopAmbientSound(t));
+          return '🔇 已停止环境音';
+        }
+        case '/screenshot': {
+          try {
+            const res = await window.utils.captureScreenshot();
+            if (res && res.success) return '📸 截图已保存：**' + res.fileName + '**';
+            return '⚠️ 截图失败';
+          } catch (e) { return '⚠️ 截图失败：' + e.message; }
+        }
+        case '/help':
+        case '/?':
+          return LOCAL_CMD_HELP;
+        default:
+          return null; // 未识别的 / 指令 → 交给调用方（无 API 时给提示）
+      }
+    }
+
     async function sendAgentMessage() {
       const input = document.getElementById('agentInput');
       const text = input.value.trim();
       if (!text && fileStore.every(f => !f.selected)) return;
       if (isProcessing) return;
+      // 未配置 AI 时，对 / 开头指令做本地自动处理（调用主进程工具并回复「已执行」）
+      if (text.startsWith('/')) {
+        const configured = await window.utils.isApiConfigured();
+        if (!configured) {
+          const reply = await handleLocalCommand(text);
+          appendMessage(text, 'user');
+          appendMessage(reply === null ? LOCAL_CMD_HELP : reply, 'assistant');
+          input.value = '';
+          input.style.height = 'auto';
+          setSendEnabled(false);
+          updateStatus('已就绪');
+          isProcessing = false;
+          return;
+        }
+      }
       if (!isAgentOpen) toggleAgent();
       // Enter/按钮发送前统一：入栈发送历史 + 清导航态
       if (text) pushNavHistory(text);
@@ -9277,12 +10993,17 @@
         if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
       }
       finish();
+      // AI 回复输出完成：推送通知（按用户设置的样式）并记录到通知中心
+      const preview = (currentContent || currentReasoning || '').replace(/\s+/g, ' ').trim();
+      const snippet = preview.length > 40 ? preview.slice(0, 40) + '…' : (preview || '已完成');
+      notify('success', `AI 回复已完成：${snippet}`, {category: 'ai', title: 'AI 回复完成'});
       currentReasoning = '';
       window._lastUsedSearch = false; // 重置本次会话的搜索标记
     });
 
     window.utils.onChatError((error) => {
       appendMessage('错误: ' + error, 'error');
+      notify('danger', `AI 回复失败：${String(error || '未知错误').replace(/</g,'&lt;').slice(0,60)}`, {category: 'ai', title: 'AI 回复失败'});
       finish();
     });
 
@@ -9378,6 +11099,7 @@
     });
 
     window.utils.onToggleAgent(() => {toggleAgent();});
+    window.utils.onCaptureScreenshotTrigger(() => { if (typeof captureOverlayScreenshot === 'function') captureOverlayScreenshot(); });
     window.utils.onAddTodo((text) => {
       todos.push({text, completed: false, pinned: false});
       saveTodos();
@@ -9413,6 +11135,30 @@
         '播放雨声', '播放篝火', '播放海浪', '播放白噪音', '停止环境音',
         '切换主题', '查看专注报告', '查看网站统计'
       ];
+      // 补全面板用：候选 + 描述（驱动浮层 UI），按用户输入的 / 前缀过滤
+      const COMMAND_CANDIDATES = [
+        { cmd: '/help',     desc: '查看所有可用命令' },
+        { cmd: '/todo',     desc: '进入待办管理面板' },
+        { cmd: '/add',      desc: '添加待办：/add 写报告' },
+        { cmd: '/del',      desc: '删除待办：/del <序号>' },
+        { cmd: '/list',     desc: '列出所有待办' },
+        { cmd: '/stats',    desc: '查看今日专注统计' },
+        { cmd: '/pomodoro', desc: '开始 25 分钟番茄钟' },
+        { cmd: '/timer',    desc: '自定义倒计时：/timer 30m 写报告' },
+        { cmd: '/lock',     desc: '立即锁定' },
+        { cmd: '/unlock',   desc: '解除锁定' },
+        { cmd: '/extend',   desc: '延长锁闭：/extend 30m' },
+        { cmd: '/switch',   desc: '切换到下一个自定义网站' },
+        { cmd: '/site',     desc: '打开白名单：/site wikipedia.org' },
+        { cmd: '/quote',    desc: '插入一条励志语录' },
+        { cmd: '/rain',     desc: '播放雨声' },
+        { cmd: '/fire',     desc: '播放篝火' },
+        { cmd: '/waves',    desc: '播放海浪' },
+        { cmd: '/white',    desc: '播放白噪音' },
+        { cmd: '/stop',     desc: '停止环境音' },
+        { cmd: '/theme',    desc: '切换主题' },
+        { cmd: '/reset',    desc: '重置今日统计' }
+      ];
       // 允许命令行风格斜杠命令自动补全，并支持中文触发词
       function _findTabMatch(prefix) {
         if (!prefix || prefix.length < 1) return null;
@@ -9426,9 +11172,113 @@
         return best;
       }
 
+      // ========== / 命令补全面板（按 QQ 风格：候选列表 + 当前项高亮 + Tab/↑↓ 切下一个） ==========
+      // 浮层挂在 .agent-input-area 上，absolute 定位显示在 textarea 上方
+      let paletteEl = null;          // 浮层 DOM（懒创建）
+      let filtered = [];             // 当前过滤结果（COMMAND_CANDIDATES 的子集）
+      let activeIdx = 0;             // 高亮项在 filtered 中的下标
+
+      // 计算光标前最后一个"词"（含 / 前缀），未匹配则返回 ''
+      function _currentPrefix() {
+        const val = input.value;
+        const pos = input.selectionStart;
+        const before = val.slice(0, pos);
+        const m = before.match(/\S+$/);
+        return m ? m[0] : '';
+      }
+
+      // 重新计算 filtered（仅 / 前缀触发），并重置 activeIdx
+      function _recomputeFiltered() {
+        const prefix = _currentPrefix();
+        if (!prefix || !prefix.startsWith('/')) {
+          filtered = [];
+        } else {
+          const lower = prefix.toLowerCase();
+          filtered = COMMAND_CANDIDATES.filter(c => c.cmd.toLowerCase().startsWith(lower));
+        }
+        if (activeIdx >= filtered.length) activeIdx = 0;
+        if (activeIdx < 0) activeIdx = 0;
+      }
+
+      // 渲染/更新浮层（filtered 为空时关闭）
+      function _renderPalette() {
+        if (filtered.length === 0) { _closePalette(); return; }
+        if (!paletteEl) {
+          paletteEl = document.createElement('div');
+          paletteEl.className = 'cmd-palette';
+          paletteEl.addEventListener('mousedown', (e) => e.preventDefault()); // 防止点击抢走 textarea 焦点
+          const anchor = input.closest('.agent-input-area') || input.parentElement;
+          if (anchor) anchor.appendChild(paletteEl);
+        }
+        paletteEl.innerHTML = filtered.map((c, i) => (
+          '<div class="cmd-item' + (i === activeIdx ? ' active' : '') + '" data-idx="' + i + '">' +
+            '<span class="cmd-name">' + c.cmd + '</span>' +
+            '<span class="cmd-desc">' + c.desc + '</span>' +
+          '</div>'
+        )).join('');
+        paletteEl.style.display = 'block';
+        const active = paletteEl.querySelector('.cmd-item.active');
+        if (active) active.scrollIntoView({ block: 'nearest' });
+      }
+
+      function _closePalette() {
+        filtered = [];
+        activeIdx = 0;
+        if (paletteEl) paletteEl.style.display = 'none';
+      }
+
+      // 在 filtered 中循环移动 activeIdx；returns true 表示成功移动
+      function _moveActive(delta) {
+        if (filtered.length === 0) return false;
+        activeIdx = (activeIdx + delta + filtered.length) % filtered.length;
+        _renderPalette();
+        return true;
+      }
+
+      // 选定当前 active 候选，替换光标前最后一个词
+      function _pickActive() {
+        if (filtered.length === 0) return false;
+        const c = filtered[activeIdx];
+        const val = input.value;
+        const pos = input.selectionStart;
+        const before = val.slice(0, pos);
+        const after = val.slice(pos);
+        const m = before.match(/\S+$/);
+        if (!m) return false;
+        const wordStart = m.index;
+        input.value = before.slice(0, wordStart) + c.cmd + after;
+        const newPos = wordStart + c.cmd.length;
+        try { input.setSelectionRange(newPos, newPos); } catch (_) {}
+        _postNavUpdate(input);
+        _closePalette();
+        return true;
+      }
+
+      // 输入变化时刷新浮层（不破坏 10872 的 input 监听器：另起一个监听器）
+      input.addEventListener('input', () => {
+        _recomputeFiltered();
+        _renderPalette();
+      });
+      // 失焦关闭（延迟 150ms 让候选的 click 先派发）
+      input.addEventListener('blur', () => { setTimeout(_closePalette, 150); });
+      // 点击候选：插入并关闭
+      document.addEventListener('mousedown', (e) => {
+        const item = e.target.closest && e.target.closest('.cmd-item');
+        if (!item || !paletteEl || !paletteEl.contains(item)) return;
+        const idx = parseInt(item.dataset.idx, 10);
+        if (!Number.isFinite(idx)) return;
+        activeIdx = idx;
+        _pickActive();
+      });
+
       input.addEventListener('keydown', (e) => {
-        // -------- ArrowUp / ArrowDown：历史消息导航 --------
+        // -------- ArrowUp / ArrowDown：历史消息导航（面板打开时优先切候选） --------
         if (e.key === 'ArrowUp' && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
+          if (filtered.length > 0 && !stack._browsing) {
+            e.preventDefault();
+            _moveActive(-1);
+            return;
+          }
           // 仅在光标处于第一行或处于导航中才触发，避免多行编辑光标跑到顶被误识别
           const isFirstLine = input.selectionStart <= input.value.indexOf('\n') || input.value.indexOf('\n') === -1;
           if (isFirstLine || stack._browsing) {
@@ -9449,6 +11299,11 @@
           }
         }
         if (e.key === 'ArrowDown' && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
+          if (filtered.length > 0 && !stack._browsing) {
+            e.preventDefault();
+            _moveActive(1);
+            return;
+          }
           const lastNLOffset = input.value.lastIndexOf('\n');
           const isLastLine = lastNLOffset === -1 || input.selectionStart >= lastNLOffset + 1;
           if (stack._browsing) {
@@ -9465,7 +11320,7 @@
             _postNavUpdate(input);
             return;
           } else if (isLastLine) {
-            // 非浏览状态下↓键若存在已匹配命令，可循环下一候选
+            // 面板未打开、非浏览态时↓键若存在已匹配命令，循环下一候选
             const match = _findTabMatch(input.value);
             if (match && match !== input.value) {
               e.preventDefault();
@@ -9476,31 +11331,50 @@
           }
         }
 
-        // -------- Tab：前缀补全 --------
-        if (e.key === 'Tab' && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
-          const val = input.value;
-          if (!val) return;
-          // 仅对最后一个"词"做补全（支持无空格的整词或 /xx 命令）
-          let wordStart = val.search(/\S+$/);
-          if (wordStart === -1) return;
-          const prefix = val.slice(wordStart);
-          if (prefix.length < 1) return;
-          const match = _findTabMatch(prefix);
-          if (match && match !== prefix) {
+        // -------- Tab：面板打开时切下一个 / Shift+Tab 切上一个；未打开走旧兜底 --------
+        if (e.key === 'Tab') {
+          if (filtered.length > 0) {
             e.preventDefault();
-            input.value = val.slice(0, wordStart) + match;
-            _postNavUpdate(input);
-            // 补全成功短暂提示（无 toast，仅高亮输入框）
-            _flashHighlight(input, '#6366f1');
-          } else {
-            // 无匹配：Shift+Tab 通常是反向跳焦，这里仅阻止 Tab 将焦点移出
-            e.preventDefault();
-            _flashHighlight(input, '#f59e0b');
+            e.stopImmediatePropagation();   // 阻止 11031 行的 Enter 监听器之类的其它 keydown
+            _moveActive(e.shiftKey ? -1 : 1);
+            return;
           }
+          // 兜底：原 _tabCandidates 单条补全
+          if (!e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
+            const val = input.value;
+            if (!val) return;
+            let wordStart = val.search(/\S+$/);
+            if (wordStart === -1) return;
+            const prefix = val.slice(wordStart);
+            if (prefix.length < 1) return;
+            const match = _findTabMatch(prefix);
+            if (match && match !== prefix) {
+              e.preventDefault();
+              input.value = val.slice(0, wordStart) + match;
+              _postNavUpdate(input);
+              _flashHighlight(input, '#6366f1');
+            } else {
+              e.preventDefault();
+              _flashHighlight(input, '#f59e0b');
+            }
+            return;
+          }
+        }
+
+        // -------- Escape：关闭候选面板 --------
+        if (e.key === 'Escape' && filtered.length > 0) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          _closePalette();
           return;
         }
-        if (e.key === 'Tab' && e.shiftKey) {
-          // Shift+Tab 允许在无匹配时移焦，不强行改变原生行为
+
+        // -------- Enter：面板打开时选定当前候选（不发送），否则走原 sendAgentMessage 流程 --------
+        if (e.key === 'Enter' && !e.shiftKey && filtered.length > 0) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          _pickActive();
+          return;
         }
       });
 
@@ -9575,13 +11449,10 @@
       return `已进行 ${Math.round((1 - threshold / total) * 100)}%`;
     }
     function showCountdownMilestoneBanner(threshold) {
-      const banner = document.getElementById('countdownMilestoneBanner');
-      if (!banner) return;
+      // 里程碑提示统一走用户选中的通知方式（toast 横幅 / 顶部胶囊），不再叠加独立常驻横幅
       const title = timerInfo.label && timerInfo.label !== '倒计时' ? `「${timerInfo.label}」` : '';
-      banner.innerHTML = `<svg class="icon" aria-hidden="true"><use href="#icon-alarm"></use></svg> ${title}倒计时 ${buildMilestoneBannerText(threshold)}`;
-      banner.style.display = 'flex';
-      clearTimeout(timerMilestoneBannerTimer);
-      timerMilestoneBannerTimer = setTimeout(() => {banner.style.display = 'none';}, 4000);
+      const msg = `${title}倒计时 ${buildMilestoneBannerText(threshold)}`;
+      notify('info', msg, {category: 'timer'});
     }
     function timerCheckMilestones() {
       if (!timerInfo) return;
@@ -9625,6 +11496,7 @@
       clearInterval(timerUIInterval);
       timerUIInterval = setInterval(timerUITick, 1000);
       timerUITick();
+      renderNotifyLive();
     }
     function stopTimerUI() {
       const wasDailyTask = !!dailyTaskActiveName;
@@ -9635,7 +11507,6 @@
       timerUIInterval = null;
       clearTimeout(timerMilestoneBannerTimer);
       document.getElementById('countdownChip').style.display = 'none';
-      document.getElementById('countdownMilestoneBanner').style.display = 'none';
       document.getElementById('countdownStartBtn').style.display = '';
       document.getElementById('countdownCancelBtn').style.display = 'none';
       document.getElementById('countdownRemain').textContent = '未开始';
@@ -9645,6 +11516,7 @@
       });
       // 倒计时结束/取消：清除每日任务进行中标记并刷新面板
       if (wasDailyTask) {dailyTaskActiveName = null; if (typeof renderDailyTasks === 'function') renderDailyTasks();}
+      renderNotifyLive();
     }
     function startCountdownFromUI() {
       const min = parseInt(document.getElementById('countdownMinInput').value, 10) || 0;
@@ -9666,6 +11538,7 @@
       document.getElementById('timerLabel').textContent = label + ' 倒计时结束！';
       pendingTimerTaskId = taskId || null;
       notif.style.display = 'block';
+      notify('success', `${label} 倒计时结束！`, {category: 'timer'});
       // 播放音效（音量已提高）
       playBeep();
     }
@@ -9726,21 +11599,47 @@
       showTimerNotification(data.label || '倒计时', data.taskId || null);
     });
 
+    // 遮罩内置截屏：截取 overlay 窗口 → 主进程写入 files 目录（仅落盘，不单独列文件库）
+    // 截屏状态全程走胶囊（persist=true 常驻提示），与通知历史解耦：让用户能稳定看到文件路径
+    async function captureOverlayScreenshot() {
+      try {
+        notify('info', '正在截取遮罩…', {category: 'system', persist: true});
+        const res = await window.utils.captureScreenshot();
+        if (res && res.success) {
+          // 截屏成功：经 notify() 写入通知中心（标记为已读，避免红点打扰），
+          // 同时胶囊常驻（persist）提示文件路径；不进折叠轮播（常驻消息不该被轮播覆盖）
+          notify('success', `已保存到文件：${res.fileName}`, {category: 'system', persist: true, read: true});
+        } else {
+          notify('danger', '截屏失败：' + ((res && res.error) || '未知错误'), {category: 'system', persist: true});
+        }
+      } catch (e) {
+        notify('danger', '截屏失败：' + (e && e.message ? e.message : e), {category: 'system', persist: true});
+      }
+    }
+
     // ===== 初始化 =====
     window.addEventListener('DOMContentLoaded', async () => {
       applyLayoutStyle();
       applyTheme(); // 同步主题按钮激活态（首屏 data-theme 已由 head 内联脚本设置）
 
-      try {isTestMode = await window.utils.getTestMode();} catch (e) { }
-      try {
-        siteList = await window.utils.getSites();
-        currentSiteName = await window.utils.getCurrentSite();
-      } catch (e) {console.error('获取站点信息失败', e);}
+      // 并行拉取互不依赖的启动数据（IPC 全为只读 getter，串行只会累加调度开销）
+      const [testModeRes, sitesRes, curSiteRes] = await Promise.allSettled([
+        window.utils.getTestMode(),
+        window.utils.getSites(),
+        window.utils.getCurrentSite()
+      ]);
+      try { isTestMode = testModeRes.value; } catch (e) { }
+      try { siteList = sitesRes.value; currentSiteName = curSiteRes.value; } catch (e) { console.error('获取站点信息失败', e); }
 
       updateClock();
       setInterval(updateClock, 1000);
       updatePanelClock();
       setInterval(updatePanelClock, 15000);
+      await loadNotifPrefs();
+      // 通知中心拖拽热区必须在启动时绑定（不依赖「设置」页是否被打开），否则未进过设置页时右侧拖拽唤出无效
+      if (typeof bindNcEdgeZone === 'function') bindNcEdgeZone();
+      renderNotifyHistory();
+      bumpUnread();
       loadTodos();
       await loadDailyTasks();
       initPomodoroUI();
@@ -9762,10 +11661,14 @@
         }
       }, 60000);
 
-      try {alwaysOnTop = await window.utils.getAlwaysOnTop(); updateTopButton();} catch (e) { }
+      const [alwaysRes, lockRes] = await Promise.allSettled([
+        window.utils.getAlwaysOnTop(),
+        window.utils.getSiteLock()
+      ]);
+      try { alwaysOnTop = alwaysRes.value; updateTopButton(); } catch (e) { }
       if (siteList.length > 0) updateSwitchButton();
       try {
-        const lock = await window.utils.getSiteLock();
+        const lock = lockRes.value;
         siteLockActive = !!lock.active;
         updateSiteLockButton();
         updateSwitchButton();
@@ -9777,15 +11680,17 @@
         document.getElementById('topBtn').style.display = 'inline-block';
         document.body.classList.add('is-test-mode');
       }
+      // 同步「查看验证码」配额显示（设置面板入口，生产 / 测试模式均可用）
+      refreshVcQuota();
+
+      const [instantRes, quickRes] = await Promise.allSettled([
+        window.utils.getInstantMode?.(),
+        window.utils.getQuickStartMode?.()
+      ]);
+      try { updateInstantNotice(!!instantRes.value); } catch (e) { }
 
       try {
-        const instant = await window.utils.getInstantMode?.();
-        updateInstantNotice(!!instant);
-      } catch (e) { }
-
-      try {
-        const isQuickStart = await window.utils.getQuickStartMode?.();
-        if (isQuickStart) {
+        if (quickRes.value) {
           document.getElementById('quickNotice').style.display = 'block';
         }
       } catch (e) { }
@@ -9807,8 +11712,19 @@
         if (enabled) document.getElementById('quickNotice').style.display = 'block';
       });
 
-      setTimeout(() => {
-        appendMessage('你好！我是你的专注助手，可管理锁屏、待办和系统控制。支持上传文件 (PDF/Word/Excel/代码) 作为上下文。点击 <svg class="icon" aria-hidden="true"><use href="#icon-attach"></use></svg> 上传或 <svg class="icon" aria-hidden="true"><use href="#icon-folder-open"></use></svg> 管理文件。', 'assistant');
+      setTimeout(async () => {
+        const hasApi = await window.utils.isApiConfigured().catch(() => false);
+        if (hasApi) {
+          appendMessage(
+            '你好呀，我是你的专注助手，已经接上 AI 啦～ 想聊什么、想让我帮什么忙，直接说就好。\n\n' +
+            '要是想快速操作，也有几个小指令可以用：加待办、设倒计时、开番茄钟、放环境音…… 输入 `/help` 看全部。有文件想让我读？点旁边 <svg class="icon" aria-hidden="true"><use href="#icon-attach"></use></svg> 传给我就行。',
+            'assistant');
+        } else {
+          appendMessage(
+            '你好呀，我是你的专注助手～ 不过现在还没连上 AI，我暂时只能用几个本地小指令帮你做事：加待办、设倒计时、开番茄钟、放环境音…… 输入 `/help` 看全部。\n\n' +
+            '想让我陪你聊天、读文件的话，去 **设置 → DeepSeek API Key** 填个密钥就好啦。',
+            'assistant');
+        }
       }, 600);
     });
   </script>

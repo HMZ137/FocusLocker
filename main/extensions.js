@@ -289,6 +289,10 @@ async function loadCrxExtensions(app, targetSession, baseDir, dataDir, log = () 
       if (seenDirs.has(resolvedDir)) continue; // 同目录已被本次扫描处理过
       seenDirs.add(resolvedDir);
       const manifest = readManifest(extensionDir);
+      const mv = manifest && manifest.manifest_version;
+      if (mv === 2) {
+        log('WARN', '扩展为 Manifest V2（已弃用），可能触发 Chromium ExtensionLoadWarning', manifest.name || item.path);
+      }
       if (loadedByDir.has(resolvedDir)) {
         // 已加载：保留状态条目但不重复 loadExtension
         const ext = (targetSession.getAllExtensions ? targetSession.getAllExtensions() : [])
@@ -314,14 +318,21 @@ async function loadCrxExtensions(app, targetSession, baseDir, dataDir, log = () 
         dir: extensionDir,
         sourcePath: sourceKey,
         ui: getExtensionUi(extensionDir, manifest),
+        manifestVersion: mv,
         success: true
       });
-      log('INFO', '扩展加载成功', extension.name, item.path);
+      log('INFO', '扩展加载成功 [MV' + (mv || '?') + ']', extension.name, item.path);
     } catch (err) {
       results.push({ file: path.basename(item.path), success: false, error: err.message });
       log('ERROR', '扩展加载失败', item.path, err.message);
     }
   }
+
+  // 汇总已加载扩展，便于排查 ExtensionLoadWarning（通常是 MV2 弃用告警）
+  try {
+    const loaded = results.filter(r => r.success && !r.disabled).map(r => `${r.name} (MV${r.manifestVersion || '?'})`);
+    if (loaded.length) log('INFO', '已加载扩展:', loaded.join(', '));
+  } catch (_) {}
 
   return results;
 }

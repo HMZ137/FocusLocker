@@ -1,6 +1,6 @@
 {
   "name": "focus-locker",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Focus Locker - 专注力锁定工具",
   "author": "FocusLocker",
   "main": "main.js",
@@ -14,7 +14,7 @@
     "productName": "FocusLocker",
     "compression": "maximum",
     "directories": {
-      "output": "dist-build7"
+      "output": "dist-build24"
     },
     "files": [
       "main.js",
@@ -103,10 +103,8 @@
   },
   "dependencies": {
     "csv-parser": "^3.2.1",
-    "highlight.js": "^11.11.1",
-    "katex": "^0.18.1",
+    "jszip": "^3.10.1",
     "mammoth": "^1.12.0",
-    "marked": "^18.0.7",
     "mica-electron": "^1.5.17",
     "pdf-parse": "^2.4.5",
     "xlsx": "^0.18.5"

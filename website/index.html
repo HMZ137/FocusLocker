@@ -257,10 +257,10 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-3.5 8-10V5l-8-3-8 3v7c0 6.5 8 10 8 10z"/><path d="M9 12l2 2 4-4"/><path d="M8 11h8M8 14h5"/></svg>
           </div>
           <h3>每日任务，完成才解锁</h3>
-          <p>在 config.js 里预置每日任务（含预设倒计时分钟数）。锁屏时段自然结束时，需完成当日任务 60% 才能解锁——紧急退出不受此限，急事永远有出口。</p>
+          <p>在 config.js 里预置每日任务（含预设倒计时分钟数）。完成比例可在设置中自定义（10%–100%，默认 60%）；锁屏时段自然结束时未达标则继续保持锁定——紧急退出不受此限，急事永远有出口。</p>
           <ul class="f-tags">
-            <li>60% 解锁门槛</li>
-            <li>进度条实时反馈</li>
+            <li>比例可调 10–100%</li>
+            <li>顶部进度条 · 阈值刻度</li>
             <li>AI 说「开始任务」即倒计时</li>
           </ul>
         </article>
@@ -384,8 +384,9 @@
           <div class="shot shot-daily">
             <div class="shot-chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><em>每日任务</em></div>
             <div class="daily-scene">
-              <div class="daily-head">今日进度 · 解锁门槛 60%</div>
-              <div class="daily-bar"><span></span></div>
+              <div class="daily-topbar"><span class="dtp-fill"></span><span class="dtp-tick"></span></div>
+              <div class="daily-head">今日进度 · 阈值可在设置中调整（默认 60%）</div>
+              <div class="daily-bar"><span></span><i class="bar-tick"></i></div>
               <div class="daily-label">已完成 3 / 5 项 · 当前 60% · 已达标</div>
               <ul class="daily-list">
                 <li class="done"><span class="d-tick">✓</span>背诵 50 个单词 <em>25 分钟</em></li>
@@ -398,7 +399,7 @@
           </div>
           <div class="shot-caption">
             <h3>任务做完，锁才打开</h3>
-            <p>每日任务在 config.js 中预置并绑定预设倒计时。锁屏时段自然结束时，完成率未达 60% 会继续保持锁定；紧急退出始终可用。</p>
+            <p>每日任务在 config.js 中预置并绑定预设倒计时；完成比例（默认 60%）可在设置面板调整。未达标时保持锁定，遮罩顶部进度条与常驻提示实时提醒进度。</p>
             <p class="shot-note">对 AI 说「开始背单词」即启动对应任务倒计时，结束后自动标记完成。</p>
           </div>
         </div>
@@ -539,6 +540,16 @@
           </div>
           <span class="tech-tag">智能省额度</span>
         </div>
+        <div class="tech-row reveal">
+          <span class="tech-ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          </span>
+          <div class="tech-main">
+            <h3>扩展与样式注入加固</h3>
+            <p>扩展解压目录与扫描目录解耦，禁用后强制卸载彻底生效；自定义 CSS 以用户来源 + !important 注入，不与原站样式抢位；文件预览完成亮/暗双主题适配。</p>
+          </div>
+          <span class="tech-tag">扩展可靠</span>
+        </div>
       </div>
     </div>
   </section>
@@ -595,7 +606,7 @@
             <span>每日任务没完成会怎样？</span>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
-          <div class="faq-a"><p>锁屏时段自然结束时，若当日每日任务完成率不足 60%，会继续保持锁定并提示进度，直到完成率达标或任务清单完成；紧急退出不受此约束。未配置每日任务时行为与旧版一致。</p></div>
+          <div class="faq-a"><p>锁屏时段自然结束时，若当日每日任务完成率不足阈值，会继续保持锁定：遮罩顶部进度条实时显示完成度与阈值刻度（白色刻度线），底部弹出常驻提示条提醒进度，达标后自动消失。完成比例（默认 60%）可在设置面板 10%–100% 范围内调整；紧急退出不受此约束，未配置每日任务时行为与旧版一致。</p></div>
         </div>
         <div class="faq-item">
           <button class="faq-q" aria-expanded="false">
@@ -637,6 +648,22 @@
         <p>每一次更新，都在让「锁得住」更可靠。</p>
       </div>
       <div class="timeline reveal">
+        <div class="tl-item">
+          <span class="tl-dot"></span>
+          <div class="tl-body">
+            <span class="tl-ver">v1.3.1 · 2026-08-24</span>
+            <h3>通知中心与网站视图细节修复</h3>
+            <p>修复通知中心弹层定位错误（改为锚定面板通知按钮）；新增「显示通知中心红点提醒」开关（默认关闭，跨重启保留）；修复网站视图右侧/底部空白，网页内容区与对话等面板像素级对齐。</p>
+          </div>
+        </div>
+        <div class="tl-item">
+          <span class="tl-dot"></span>
+          <div class="tl-body">
+            <span class="tl-ver">v1.3.0 · 2026-08-22</span>
+            <h3>每日任务完成门槛与界面适配</h3>
+            <p>完成比例可在设置中自定义（10%–100%，默认 60%）；遮罩顶部新增全宽进度条与阈值刻度，未达标常驻提示；修复扩展禁用失效、自定义 CSS 抢位、文件预览亮色适配等系列问题。</p>
+          </div>
+        </div>
         <div class="tl-item">
           <span class="tl-dot"></span>
           <div class="tl-body">
@@ -707,7 +734,7 @@
           <div class="dl-card">
             <div class="dl-version">
               <span class="dl-badge">Windows</span>
-              <h4>FocusLocker <span id="dlVersion">1.2.0</span></h4>
+              <h4>FocusLocker <span id="dlVersion">1.3.0</span></h4>
               <p>最新稳定版</p>
             </div>
             <a class="btn btn-primary btn-lg btn-block" href="downloads/latest">

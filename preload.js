@@ -37,6 +37,9 @@ contextBridge.exposeInMainWorld('utils', {
   setLayoutMode: (mode) => ipcRenderer.invoke('set-layout-mode', mode),
   toggleAlwaysOnTop: () => ipcRenderer.invoke('toggle-always-on-top'),
   getAlwaysOnTop: () => ipcRenderer.invoke('get-always-on-top'),
+  setAlwaysOnTop: (enabled) => ipcRenderer.invoke('set-always-on-top', enabled),
+  getVerifyCodeQuota: () => ipcRenderer.invoke('get-verify-code-quota'),
+  consumeVerifyCode: () => ipcRenderer.invoke('consume-verify-code'),
   toggleSiteLock: () => ipcRenderer.invoke('toggle-site-lock'),
   getSiteLock: () => ipcRenderer.invoke('get-site-lock'),
   onSiteLockChanged: (callback) => {
@@ -63,6 +66,7 @@ contextBridge.exposeInMainWorld('utils', {
   },
 
   // AI
+  isApiConfigured: () => ipcRenderer.invoke('get-api-configured'),
   chatWithAgent: (messages) => ipcRenderer.invoke('deepseek-chat', messages),
   abortChat: () => ipcRenderer.send('deepseek-abort'),
   onChatChunk: (callback) => {
@@ -88,6 +92,9 @@ contextBridge.exposeInMainWorld('utils', {
   },
   onToggleAgent: (callback) => {
     ipcRenderer.on('toggle-agent', () => callback());
+  },
+  onCaptureScreenshotTrigger: (callback) => {
+    ipcRenderer.on('trigger-capture-screenshot', () => callback());
   },
   onAddTodo: (callback) => {
     ipcRenderer.on('add-todo', (event, text) => callback(text));
@@ -124,6 +131,8 @@ contextBridge.exposeInMainWorld('utils', {
   readFileText: (filePath) => ipcRenderer.invoke('read-file-text', filePath),
   openFilesDir: () => ipcRenderer.invoke('open-files-dir'),
   importFilesToFilesDir: () => ipcRenderer.invoke('import-files-to-files-dir'),
+  // 遮罩内置截屏：截取 overlay 窗口并保存到 files 目录，返回 {success, path, fileName}
+  captureScreenshot: () => ipcRenderer.invoke('capture-screenshot'),
   pickFilesToAttach: () => ipcRenderer.invoke('pick-files-to-attach'),
   importSelectedFiles: (filePaths) => ipcRenderer.invoke('import-selected-files', filePaths),
   deleteUploadedFile: (filePath) => ipcRenderer.invoke('delete-uploaded-file', filePath),
@@ -199,6 +208,10 @@ contextBridge.exposeInMainWorld('utils', {
   getFocusSettings: () => ipcRenderer.invoke('get-focus-settings'),
   saveFocusSettings: (settings) => ipcRenderer.invoke('save-focus-settings', settings),
 
+  // 通知样式偏好（主进程持久化，跨会话保留）
+  getNotifPrefs: () => ipcRenderer.invoke('get-notif-prefs'),
+  setNotifPrefs: (prefs) => ipcRenderer.invoke('set-notif-prefs', prefs),
+
   // 专注报告 / 网站统计 / 快捷键
   getFocusReport: (days) => ipcRenderer.invoke('get-focus-report', days),
   getSiteStats: () => ipcRenderer.invoke('get-site-stats'),
@@ -209,6 +222,10 @@ contextBridge.exposeInMainWorld('utils', {
   // 遮罩内编辑 config.js
   getConfigForEdit: () => ipcRenderer.invoke('get-config-for-edit'),
   saveConfigFromEdit: (cfg) => ipcRenderer.invoke('save-config-from-edit', cfg),
+
+  // 数据备份 / 导入
+  exportAllData: (opts) => ipcRenderer.invoke('export-all-data', opts),
+  importAllData: () => ipcRenderer.invoke('import-all-data'),
 
   // 强化锁定：紧急退出
   requestEmergencyExit: () => ipcRenderer.invoke('request-emergency-exit'),
