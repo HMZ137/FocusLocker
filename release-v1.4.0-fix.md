@@ -76,6 +76,8 @@ v1.4.0 的详细说明请见 [v1.4.0 Release](https://github.com/HMZ137/FocusLoc
 - **CN_HiTimes01**（GitHub: [@CN_HiTimes01](https://github.com/CN_HiTimes01) · UMAsky001 · Collaborator）
   — 协助完成本轮卸载残留问题的排查与回归验证，让 uninstall 流程真正幂等、干净。
 
++ @CN_HiTimes01
+
 ## 反馈
 
 发现缺陷或有功能建议请提交至：[Issues](https://github.com/HMZ137/FocusLocker/issues)
