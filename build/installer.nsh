@@ -30,4 +30,13 @@
   Delete "$SMPROGRAMS\FocusLocker\测试模式.lnk"
   RMDir "$SMPROGRAMS\FocusLocker"
   Delete "$DESKTOP\FocusLocker.lnk"
+  ; 清理计划任务：卸载后若残留，任务计划程序会每分钟 / 每次登录去跑已删除的 exe/vbs 而不断报错
+  ; 三个任务名与 main.js 中保持一致：自启动 FocusLocker、看门狗 FocusLockerGuard / FocusLockerGuardProc
+  ; 任务不存在时 /F 仍返回非零，这里忽略退出码（nsExec 不因此中断卸载）
+  nsExec::ExecToLog 'schtasks /Delete /TN FocusLocker /F'
+  nsExec::ExecToLog 'schtasks /Delete /TN FocusLockerGuard /F'
+  nsExec::ExecToLog 'schtasks /Delete /TN FocusLockerGuardProc /F'
+  ; 清理注册表自启动项（HKCU Run + StartupApproved），避免登录时找不到 exe 仍尝试启动
+  DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "FocusLocker"
+  DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run" "FocusLocker"
 !macroend

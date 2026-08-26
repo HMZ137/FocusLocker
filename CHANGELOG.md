@@ -10,6 +10,70 @@
 
 ---
 
+## [1.4.0-fix] - 2026-08-27 · 卸载清理计划任务与注册表自启动项
+
+对应标签：v1.4.0-fix
+
+### 1.26 卸载时彻底停用计划任务与自启动注册表项
+
+**问题**：FocusLocker 在首次启动时通过 `main.js` 的 `ensureWatchdog()` 与 Electron `setLoginItemSettings` 注册了下列计划任务 / 自启动项：
+
+| 类型 | 名称 | 触发条件 | 指向文件 |
+| --- | --- | --- | --- |
+| 计划任务 | `FocusLocker` | ONLOGON（登录时） | `FocusLocker.exe` |
+| 计划任务 | `FocusLockerGuard` | 每分钟 | `guard.vbs`（看门狗 vbs，守护主进程） |
+| 计划任务 | `FocusLockerGuardProc` | 每分钟 | `guard-proc.vbs`（同进程的另一条触发链） |
+| HKCU Run | `FocusLocker` | 登录时 | `FocusLocker.exe` |
+
+应用本体通过 `before-quit` 仅会清理 `FocusLockerGuard` / `FocusLockerGuardProc` 两条看门狗任务，但卸载器（`build/installer.nsh` 的 `customUnInstall`）此前只删除了快捷方式，导致：
+
+1. 用户在系统「任务计划程序」看到 3 条 FocusLocker 任务残留；
+2. 卸载后每分钟仍触发 `guard.vbs` / `guard-proc.vbs`，但 `FocusLocker.exe` 已被删 → 任务执行报错「系统找不到指定的文件」；
+3. 每次登录还可能被 `FocusLocker` 自启动任务 / `HKCU\...\Run\FocusLocker` 拉起一个不存在的进程并报错；
+4. 由于 Electron `setLoginItemSettings` 还会写 `HKCU\...\Explorer\StartupApproved\Run\FocusLocker` 的「快速启动」批准位，仅删计划任务也会留下「下次登录试启动」的痕迹。
+
+**修复**（仅 `build/installer.nsh`）：
+
+```nsh
+!macro customUnInstall
+  ; 1. 先停掉自启动计划任务，避免登录时再拉起已删除的 exe
+ nsExec::ExecToLog 'schtasks /Delete /TN "FocusLocker" /F'
+  ; 2. 看门狗任务优雅退出时会自己清，但卸载不走 before-quit，必须在此兜底
+  nsExec::ExecToLog 'schtasks /Delete /TN "FocusLockerGuard" /F'
+  nsExec::ExecToLog 'schtasks /Delete /TN "FocusLockerGuardProc" /F'
+  ; 3. 顺手清掉 Electron setLoginItemSettings 写的两个注册表自启动项
+  DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "FocusLocker"
+  DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run" "FocusLocker"
+  ; 4. 原有的快捷方式清理保持不变
+  Delete "$SMPROGRAMS\FocusLocker\正常模式.lnk"
+  Delete "$SMPROGRAMS\FocusLocker\快速模式.lnk"
+  Delete "$SMPROGRAMS\FocusLocker\测试模式.lnk"
+  RMDir "$SMPROGRAMS\FocusLocker"
+  Delete "$DESKTOP\FocusLocker.lnk"
+!macroend
+```
+
+**修复要点**：
+
+- `nsExec::ExecToLog` 在 schtasks 返回非 0（任务不存在、旧残留已清）时**不会中断卸载**，所以即使老用户机上本来就没有 3 条任务、或已手动清过，升级都安全；
+- 自启动任务 `FocusLocker` 只在**卸载**这一刻删，未放进 `before-quit`——否则正常退出后自动启动会失效（用户重启不会再拉起 FocusLocker）；
+- 看门狗任务在 `before-quit` 中已删，卸载时再删一次只是兜底（双重保险）；
+- `DeleteRegValue` 即使目标值不存在也不会报错，幂等。
+
+**验证**：
+
+- 重新构建 `dist-build26/FocusLocker Setup 1.4.0.exe`（版本号置为 `1.4.0-fix`，NSIS 编译通过，耗时约 47s）；
+- 卸载后用 `schtasks /Query /FO LIST | findstr /I focuslocker` 与 `reg query HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v FocusLocker` 检查，均无残留；
+- 「任务计划程序」UI 中 FocusLocker 树节点在卸载后自动消失。
+
+### 1.27 致谢本轮贡献者
+
+- **CN_HiTimes01**（GitHub: [@CN_HiTimes01](https://github.com/CN_HiTimes01) / UMAsky001）— 协助完成本轮卸载残留问题排查与回归验证。
+
+> 这次的 fix 版本不引入新功能、不改 UI、不动 IPC 与 IPC 协议，因此所有 v1.4.0 已有的接口与行为保持向前兼容；从 1.4.0 升级到 1.4.0-fix 不会触发数据迁移、配置格式变化或快捷键语义变化。
+
+---
+
 ## [1.4.0] - 2026-08-25 · 查看验证码 · 图标统一 Lucide · 性能与暗色优化正式发布
 
 对应标签：v1.4.0
@@ -162,6 +226,16 @@
   - **无 Key**：明确"当前未配置 AI，指令由本机直接执行"，列出本地指令，并提示"设置 → DeepSeek API Key 填入密钥即可开启 AI 对话"。
 - 改动文件：`renderer/index.html`（欢迎语块由同步改 `async`，按 hasApi 分支 `appendMessage`）。
 - **构建验证**：dist-build23。
+
+---
+
+## [1.4.0] §1.25 · 卸载清理计划任务（修复卸载后任务计划程序不断报错）
+
+- **症状**：卸载应用后任务计划程序不断报错。根因：卸载脚本 `build/installer.nsh` 的 `customUnInstall` 只删快捷方式，未清理应用注册的计划任务；`main.js` 的 `before-quit` 仅删除两个看门狗任务，未删除自启动任务 `FocusLocker`。
+- **应用注册的三个计划任务**（任务名见 main.js）：`FocusLocker`（自启动，ONLOGON /RL HIGHEST）、`FocusLockerGuard`（看门狗 task 模式，MINUTE /MO 1）、`FocusLockerGuardProc`（看门狗 proc 模式，MINUTE /MO 1）。卸载后前两者因 exe/vbs 已删除，每分钟 / 每次登录触发即报错。
+- **修复**：`customUnInstall` 卸载时 `schtasks /Delete /TN <name> /F` 删除上述三个任务（任务不存在时 `/F` 仍返回非零，忽略退出码不中断卸载），并 `DeleteRegValue` 清理 HKCU `Run` 与 `StartupApproved\Run` 中的 `FocusLocker` 自启动项，避免登录时仍尝试启动已删除的 exe。
+- **设计取舍**：自启动任务 `FocusLocker` 仅在卸载时删除，不放入 `before-quit`——否则正常退出后自动启动失效（下次登录不再拉起应用）。看门狗任务属会话级，优雅退出时仍由 `before-quit` 清理。
+- **构建验证**：dist-build25（NSIS 编译通过，产物 `FocusLocker Setup 1.4.0.exe`）。
 
 ---
 
