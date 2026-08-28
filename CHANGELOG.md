@@ -70,6 +70,8 @@
 
 - **CN_HiTimes01**（GitHub: [@CN_HiTimes01](https://github.com/CN_HiTimes01) / UMAsky001）— 协助完成本轮卸载残留问题排查与回归验证。
 
++ @CN_HiTimes01
+
 > 这次的 fix 版本不引入新功能、不改 UI、不动 IPC 与 IPC 协议，因此所有 v1.4.0 已有的接口与行为保持向前兼容；从 1.4.0 升级到 1.4.0-fix 不会触发数据迁移、配置格式变化或快捷键语义变化。
 
 ---
